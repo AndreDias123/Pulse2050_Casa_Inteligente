@@ -101,7 +101,7 @@ jobs:
           if [[ "$day" == 10 ]]; then
             rm .github/workflows/publish-in-stages.yml
             rmdir .github/workflows .github
-            diff -qr --exclude=.git . source
+            diff -qr --exclude=.git --exclude=source . source
           fi
 
           git config user.name "André Dias"
