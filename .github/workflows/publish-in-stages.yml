@@ -1,0 +1,113 @@
+name: Publicar PULSE2050 em etapas
+
+on:
+  schedule:
+    - cron: '*/15 18 * * *'
+permissions:
+  contents: write
+  issues: write
+concurrency:
+  group: pulse2050-publications
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout destino
+        uses: actions/checkout@v4
+        with:
+          ref: main
+      - name: Checkout da origem verificada
+        uses: actions/checkout@v4
+        with:
+          repository: AndreDias123/casa2050-python
+          ref: 062137d4010446b1f72ea5f9224598ffeb93288c
+          path: source
+          persist-credentials: false
+      - name: Publicar próxima parte do cronograma
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: AndreDias123/Pulse2050_Casa_Inteligente
+        shell: bash
+        run: |
+          set -euo pipefail
+          local_date="$(TZ=America/Sao_Paulo date +%F)"
+          case "$local_date" in
+            2026-10-08) day=1 ;;
+            2026-10-09) day=2 ;;
+            2026-10-10) day=3 ;;
+            2026-10-11) day=4 ;;
+            2026-10-12) day=5 ;;
+            2026-10-13) day=6 ;;
+            2026-10-14) day=7 ;;
+            2026-10-15) day=8 ;;
+            2026-10-16) day=9 ;;
+            2026-10-17) day=10 ;;
+            *) echo "Fora do cronograma: $local_date"; exit 0 ;;
+          esac
+
+          tag="publication-day-$day"
+          finish_issue() {
+            gh issue edit "$day" --repo "$GH_REPO" --add-label publicado
+            issue_state="$(gh issue view "$day" --repo "$GH_REPO" --json state --jq .state)"
+            if [[ "$issue_state" != CLOSED ]]; then
+              gh issue close "$day" --repo "$GH_REPO" --reason completed
+            fi
+          }
+
+          if git ls-remote --exit-code --tags origin "refs/tags/$tag" >/dev/null 2>&1; then
+            echo "Entrega $day já publicada; garantindo fechamento do cartão."
+            finish_issue
+            exit 0
+          fi
+
+          titles=(
+            "README e visão geral"
+            "Aplicação Flask, autenticação e rotas"
+            "Modelos, banco e dados de demonstração"
+            "Energia e relatórios"
+            "Agendador de automações"
+            "Templates da interface"
+            "Front-end CSS e JavaScript 3D"
+            "Dependências e smoke tests"
+            "Documentação do processo e fluxograma"
+            "Screenshots e configuração final"
+          )
+          case "$day" in
+            1) files=(README.md) ;;
+            2) files=(app.py config.py extensions.py auth.py main.py) ;;
+            3) files=(models.py seed.py) ;;
+            4) files=(energia.py services/energia.py services/relatorios.py) ;;
+            5) files=(services/agendador.py) ;;
+            6) files=(templates/) ;;
+            7) files=(static/) ;;
+            8) files=(requirements.txt smoke_test.py) ;;
+            9) files=(PROCESS.md SPRINTS.md FLUXOGRAMA.md) ;;
+            10) files=(docs/screenshots/ .gitignore) ;;
+          esac
+
+          for path in "${files[@]}"; do
+            if [[ "$path" == */ ]]; then
+              directory="${path%/}"
+              mkdir -p "$(dirname "$directory")"
+              cp -a "source/$directory" "$directory"
+            else
+              mkdir -p "$(dirname "$path")"
+              cp -a "source/$path" "$path"
+            fi
+          done
+
+          if [[ "$day" == 10 ]]; then
+            rm .github/workflows/publish-in-stages.yml
+          fi
+
+          git config user.name "André Dias"
+          git config user.email "andre.dias.146623@a.fecaf.com.br"
+          git add -A
+          git commit \
+            -m "Publicação programada ($day/10): ${titles[$((day - 1))]}" \
+            -m "Esta é a data de publicação fracionada, não a data de desenvolvimento. Conteúdo preexistente publicado sem alteração a partir de AndreDias123/casa2050-python, commit 062137d4010446b1f72ea5f9224598ffeb93288c."
+          git tag -a "$tag" -m "Publicação $day/10 em $local_date (Brasília)"
+          git push --atomic origin HEAD:main "refs/tags/$tag"
+          finish_issue
