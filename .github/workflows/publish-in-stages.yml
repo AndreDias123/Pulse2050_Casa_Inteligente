@@ -78,7 +78,7 @@ jobs:
             1) files=(README.md) ;;
             2) files=(app.py config.py extensions.py auth.py main.py) ;;
             3) files=(models.py seed.py) ;;
-            4) files=(energia.py services/energia.py services/relatorios.py) ;;
+            4) files=(energia.py services/__init__.py services/energia.py services/relatorios.py) ;;
             5) files=(services/agendador.py) ;;
             6) files=(templates/) ;;
             7) files=(static/) ;;
