@@ -106,7 +106,7 @@ jobs:
 
           git config user.name "André Dias"
           git config user.email "andre.dias.146623@a.fecaf.com.br"
-          git add -A
+          git add -A -- . ':!source'
           git commit \
             -m "Publicação programada ($day/10): ${titles[$((day - 1))]}" \
             -m "Esta é a data de publicação fracionada, não a data de desenvolvimento. Conteúdo preexistente publicado sem alteração a partir de AndreDias123/casa2050-python, commit 062137d4010446b1f72ea5f9224598ffeb93288c."
