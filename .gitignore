@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+.venv/
+venv/
+pulse2050.db
+.env
