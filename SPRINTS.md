@@ -89,17 +89,21 @@ projeto.
 
 **Nesta reunião abordamos algumas necessidades a mais que vimos durante o processo.**
 
-Será adicionado: comparação com a semana anterior, projeção do gasto
+Será adicionado uma funcionalidade comparação com a semana anterior, projeção do gasto
 do mês, um alerta que aponta o dispositivo que mais aumentou o consumo, e
 um gráfico do consumo diário por cômodo.
 
 
-Focamos bastante nos controles de arquivo e gerenciamos de pasta, quais pastas irá ter, qual será a estruta de arquivos, realiza o projeto de forma segura e estruturada, trazendo uma segurança no desenvolvimento, usando metodologia SOLID.
+Focamos bastante nos controles de arquivo e gerenciamento de pasta, quais pastas irá ter, qual será a estruta de arquivos, realiza o projeto de forma segura e estruturada, trazendo uma segurança no desenvolvimento, usando metodologia SOLID.
 
 
 ---
 
 ## Sprint 3 — Terminando a experiência e a segurança
+### Semana 04 - 08/2026 do dia 23 ao dia 29 
+
+"Focar nas alterações aqui, especificar arquivos do projeto e citar nome de pastas e também focar na apresentação do projeto"
+
 
 
 - Cada automação ganhou um botão de ativar/desativar.
