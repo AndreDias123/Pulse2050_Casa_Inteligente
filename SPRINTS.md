@@ -44,28 +44,23 @@ representa um pedaço real de trabalho, não uma data fixa de calendário.
 ## Sprint 1 — A base do projeto
 ### Semana 02 - 08/2026
 
+Focamos em desenvolvimento do projeto, arquivos, e estruturas de pastas.
+ 
 - Desenvolvimento
   * Banco de dados.
-  * Back-end para autenticação.
+    * desenvolvimento do MER.
+    * Desenvolvimento do DER.
+      * Inciado o desenvolvimento do arquivo seed.py, com base no DER.
+  * Back-end.
+    * Desenvolvimento do Fluxograma do sistema ou MinMap do sistema.
   * Back-end e automação.
+    * Desenvolvimento do sistema, com PYTHON utilizando as seguintes bibliotecas Flask.
   * front-end.
+    * Desenvolvimento dos wireframes. 
+    * Desenvolvimento do HTML e CSS com base nos wireframes.
 
+Foi conversado na reunião semanal, sobre a possibilidade de utilizarnmos, uma maquete 3D para visualização dos comodos da casa, e a visualização dos equipamententos ligando ou desligando.
 
-
-
-Esse era o item mais importante da lista de pendências. A solução foi usar
-o APScheduler rodando junto do Flask, checando a cada minuto se alguma
-automação bate com o horário e o dia atual, e chamando o mesmo
-`ligar()`/`desligar()` que o botão da tela usa.
-
-No caminho, resolvemos um problema de fuso horário (o resto do sistema usa
-UTC, mas o horário da automação é hora local — criamos uma configuração
-`TIMEZONE`), descobrimos que o Windows precisa do pacote `tzdata` pra
-entender fusos horários, e evitamos que o agendador rodasse duas vezes ao
-mesmo tempo por causa do modo de desenvolvimento do Flask.
-
-Testamos criando uma automação com o horário de agora e chamando a função
-do agendador na mão, sem esperar o relógio virar — funcionou.
 
 ---
 
