@@ -7,29 +7,51 @@ representa um pedaço real de trabalho, não uma data fixa de calendário.
 ---
 
 ## Sprint 0 — A base do projeto
+### Semana 01 - 08/2026
 
-O que já estava pronto antes da gente começar a mexer:
+- Descrição: Planejamento, levantamento de requisitos, e alinhamento de processos, funções e cargos.
 
-- A modelagem de dados com herança (`Dispositivo` e suas subclasses — Luz,
-  Porta, Janela, Câmera, TV, Eletrodoméstico, Robô Aspirador,
-  Ar-condicionado), cada uma com seu próprio jeito de responder
-  `status()`/`ligar()`/`desligar()`.
-- Login com dois perfis (Administrador e Usuário Comum), com permissão por
-  dispositivo.
-- Painel de energia calculando kWh e custo em cima do histórico real de
-  uso, não valor fixo.
-- Automações salvas no banco (dava pra criar), mas sem disparo automático.
-- Relatório semanal por e-mail (com prévia quando não tem SMTP
-  configurado).
-- Um arquivo de teste (`smoke_test.py`) com 24 checagens automáticas.
+- Para atender as necessidades desse projeto utilizamos a seguintes linguagens disponiveis.
+  * Python - **Obrigatório** utilização
+  * JavaScript - Utilizado no FrontEnd e geração da Maquete 3D
+  * Html e Css - Para geração do site e organização dos icones na
+  * Sql - para o banco de dados, através das seeds
 
-O que faltava, pelo próprio README do projeto: as automações não
-disparavam sozinhas, não tinha proteção contra CSRF, e o e-mail dependia de
-configurar SMTP.
+- Após decidirmos que a idéia é fazer uma casa automátizada, começamos definindo quais itens de uma casa podemos, criar a automação.
 
----
+  1. Luz
+  2. Janela
+  3. Porta
+  4. TV
+  5. Ar-Condicionado
+  6. Robo-Aspirador
 
-## Sprint 1 — Fazendo as automações disparar sozinhas
+- Cadastro de usuário no sistema, com validação de e-mail,  atravé do banco de dados
+
+- Os administradores, podem definir niveis de acesso de outros usuários para aquela casa, podendo decidir quem é admin e quem é usuario comum. Realizando essa diferença em niveis de acesso no banco de dados. 
+
+- Sistema calcula, quantos Kwh, consome a casa, com cada aparelho ligado. 
+
+- histórico de quem ligou, ou desligou 
+
+- Fluxograma
+
+- Funções e cargos:
+
+
+----
+
+## Sprint 1 — A base do projeto
+### Semana 02 - 08/2026
+
+- Desenvolvimento
+  * Banco de dados.
+  * Back-end para autenticação.
+  * Back-end e automação.
+  * front-end.
+
+
+
 
 Esse era o item mais importante da lista de pendências. A solução foi usar
 o APScheduler rodando junto do Flask, checando a cada minuto se alguma
@@ -54,15 +76,24 @@ projeto. Adicionamos: comparação com a semana anterior, projeção do gasto
 do mês, um alerta que aponta o dispositivo que mais aumentou o consumo, e
 um gráfico do consumo diário por cômodo.
 
-Durante o teste, o alerta calculou uma variação de consumo de **10794%**
-num dispositivo — bug real, causado por só termos uma semana de dados de
-exemplo (a "semana anterior" usada pra comparar praticamente não tinha
-dado nenhum). Corrigimos exigindo uma base mínima de comparação, e
-estendendo os dados de exemplo pra duas semanas.
+Realizamos a incialização do desenvolvimento web com cada integrante do grupo sendo designado a cada tarefa 
+- Luiz banco de dados e suporte no full stack 
+- Vitor desenvolvimento full-stack 
+- andré desenvovliemtno full-stack  
+- Gabriel Documentação e suporte no full stack 
+
+Focamos bastante nos controles de arquivo e gerenciamos de pasta, quais pastas irá ter, qual será a estruta de arquivos, realiza o projeto de forma segura e estruturada, trazendo uma segurança no desenvolvimento, usando metodologia SOLID
+
+Conseguimos realizar o desenvolvimento de uma parte basica do banco de dados e também modelo Wireframing para a parte de UI/UX 
+
+Foi incluindo algumas automações.
+Foi sugerido a inclusão de uma maquete 3d.
+
 
 ---
 
 ## Sprint 3 — Terminando a experiência e a segurança
+
 
 - Cada automação ganhou um botão de ativar/desativar.
 - O painel passou a mostrar a próxima automação a disparar.
@@ -80,7 +111,7 @@ importar. O smoke test acusou isso na hora e corrigimos rápido.
 
 Criamos o `PROCESS.md` contando o processo de desenvolvimento, o
 `.gitignore`, inicializamos o repositório Git e publicamos no GitHub. Esse
-próprio arquivo (`SPRINTS.md`) também nasceu nessa etapa.
+próprio arquivo (`SPRINTS.md`) também nasceu nessa etapa. 
 
 ---
 
