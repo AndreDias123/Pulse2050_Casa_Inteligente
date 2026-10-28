@@ -7,7 +7,7 @@ representa um pedaço real de trabalho, não uma data fixa de calendário.
 ---
 
 ## Sprint 0 — A base do projeto
-### Semana 01 - 08/2026
+### Semana 01 - 08/2026 do dia 02 ao dia 08
 
 - Descrição: Planejamento, levantamento de requisitos, e alinhamento de processos, funções e cargos.
 
@@ -38,11 +38,12 @@ representa um pedaço real de trabalho, não uma data fixa de calendário.
 
 - Funções e cargos:
 
+Reunião semanal concluida, foco no inicio das atividades.
 
 ----
 
 ## Sprint 1 — A base do projeto
-### Semana 02 - 08/2026
+### Semana 02 - 08/2026 do dia 09 ao dia 15
 
 Focamos em desenvolvimento do projeto, arquivos, e estruturas de pastas.
  
@@ -50,9 +51,9 @@ Focamos em desenvolvimento do projeto, arquivos, e estruturas de pastas.
   * Banco de dados.
     * desenvolvimento do MER.
     * Desenvolvimento do DER.
-      * Inciado o desenvolvimento do arquivo seed.py, com base no DER.
+      * Inciado o desenvolvimento do arquivo `SEED.py`, com base no DER.
   * Back-end.
-    * Desenvolvimento do Fluxograma do sistema ou MinMap do sistema.
+    * Desenvolvimento do Fluxograma do sistema ou MindMap do sistema.
   * Back-end e automação.
     * Desenvolvimento do sistema, com PYTHON utilizando as seguintes bibliotecas Flask.
   * front-end.
@@ -65,24 +66,35 @@ Foi conversado na reunião semanal, sobre a possibilidade de utilizarnmos, uma m
 ---
 
 ## Sprint 2 — Deixando o painel de energia mais inteligente
+### Semana 03 - 08/2026 do dia 16 ao dia 22
 
 Aqui o foco foi dar mais conteúdo real pra categoria INTELLIGENCE do
-projeto. Adicionamos: comparação com a semana anterior, projeção do gasto
+projeto. 
+
+  - Finalizado as ativadades da semana, anterior. Porém algumas ficaram pendentes.
+    - Desenvolvimento do MER *(Concluido)*
+    - Desenvolvimento do DER *(Ainda Pendente)*
+      - Arquivo `SEED.py`, *(Ainda Pendente, por conta do DER)*
+
+  - MindMap do sistema, desenvolvido, *(concluido parcialmente)*, não realizaremos um Fluxograma geral do sistema.
+
+  - Back-End e Automação.
+    - Back-End *(Desenvolvimento em adamento)*
+    - Automação *(Em andamento em conjunto com o back-end)*
+
+  - Front-end 
+    - Wireframes *(fase final de aprovação)*
+    - Desenvolvimento do HTML e CSS *(Inciado)*
+
+
+**Nesta reunião abordamos algumas necessidades a mais que vimos durante o processo.**
+
+Será adicionado: comparação com a semana anterior, projeção do gasto
 do mês, um alerta que aponta o dispositivo que mais aumentou o consumo, e
 um gráfico do consumo diário por cômodo.
 
-Realizamos a incialização do desenvolvimento web com cada integrante do grupo sendo designado a cada tarefa 
-- Luiz banco de dados e suporte no full stack 
-- Vitor desenvolvimento full-stack 
-- andré desenvovliemtno full-stack  
-- Gabriel Documentação e suporte no full stack 
 
-Focamos bastante nos controles de arquivo e gerenciamos de pasta, quais pastas irá ter, qual será a estruta de arquivos, realiza o projeto de forma segura e estruturada, trazendo uma segurança no desenvolvimento, usando metodologia SOLID
-
-Conseguimos realizar o desenvolvimento de uma parte basica do banco de dados e também modelo Wireframing para a parte de UI/UX 
-
-Foi incluindo algumas automações.
-Foi sugerido a inclusão de uma maquete 3d.
+Focamos bastante nos controles de arquivo e gerenciamos de pasta, quais pastas irá ter, qual será a estruta de arquivos, realiza o projeto de forma segura e estruturada, trazendo uma segurança no desenvolvimento, usando metodologia SOLID.
 
 
 ---
