@@ -13,7 +13,7 @@ construindo o projeto (e onde erramos e corrigimos no caminho), e
 
 Também temos o design das telas (login, painel, detalhe do dispositivo,
 energia e maquete 3D) no Figma, pra quem quiser ver isolado do código:
-[PULSE2050 no Figma](https://www.figma.com/design/T8fPfgtPJPYLN3F3lGdegU/Projeto?node-id=2085-2&p=f&t=MSsG3kArnrFYGlrR-0).
+[PULSE2050 no Figma]([https://www.figma.com/design/T8fPfgtPJPYLN3F3lGdegU/Projeto?node-id=2085-2&p=f&t=MSsG3kArnrFYGlrR-0](https://www.figma.com/design/hzFawKAiLx3iq8FkzFOZxZ/ExpoTec?node-id=46-2&t=uojBmQ6G2defeyGk-0).
 
 ## Com que a gente construiu
 
