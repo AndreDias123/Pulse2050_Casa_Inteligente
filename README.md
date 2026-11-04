@@ -1,67 +1,162 @@
 # PULSE2050 — Sistema Inteligente
 
-Casa inteligente feita no 4º semestre de Ciência da Computação para a
-ExpoTech 2026.2 (Missão 2050, categoria INTELLIGENCE): banco de dados,
-POO, autenticação, automações, painel de energia e uma maquete 3D
-interativa ligada ao sistema real.
+O **PULSE2050** é um sistema de gerenciamento para uma residência inteligente,
+desenvolvido no 4º semestre de Ciência da Computação para a **ExpoTech 2026.2**
+(Missão 2050, categoria **INTELLIGENCE**).
 
-## Documentação
+O sistema centraliza o controle dos dispositivos da casa, executa automações
+por horário e analisa o consumo de energia com base no histórico real de uso,
+tornando a residência mais eficiente e fácil de gerenciar. Uma **maquete 3D
+interativa** representa a casa e está ligada ao mesmo back-end: cada ação
+feita nela altera o estado do dispositivo no banco de dados, e cada mudança
+no banco aparece na maquete.
 
-- 🔀 **[Fluxograma](FLUXOGRAMA.md)** — o caminho completo do usuário no sistema, do login
-  ao controle dos dispositivos, em diagrama.
-- 🛠️ **[Processo](PROCESS.md)** — como o projeto foi construído, as decisões que tomamos
-  e os erros que encontramos e corrigimos no caminho.
-- 🗓️ **[Sprints](SPRINTS.md)** — o mesmo processo organizado em sprints, com o que foi
-  entregue em cada etapa.
-- 🎨 **[Figma](https://www.figma.com/design/hzFawKAiLx3iq8FkzFOZxZ/ExpoTec?node-id=46-2&t=uojBmQ6G2defeyGk-0)** — o design de todas as telas (login, painel, dispositivo,
-  energia e maquete 3D) antes de virarem código.
+---
 
-## Tecnologias
+## 📄 Documentação
 
-Python 3.10+ · Flask · SQLAlchemy · Flask-Login · SQLite · Three.js
+| Documento | Conteúdo |
+|---|---|
+| [Fluxograma](FLUXOGRAMA.md) | Fluxo da aplicação em diagramas, do login ao controle dos dispositivos. |
+| [Processo](PROCESS.md) | Decisões técnicas, problemas encontrados e como foram resolvidos. |
+| [Sprints](SPRINTS.md) | Evolução do projeto por sprint e acompanhamento no Kanban. |
+| [Figma](https://www.figma.com/design/hzFawKAiLx3iq8FkzFOZxZ/ExpoTec?node-id=46-2&t=uojBmQ6G2defeyGk-0) | Protótipo das telas: login, painel, dispositivo, energia e maquete 3D. |
 
-## Como rodar
+---
+
+## 🛠️ Tecnologias
+
+| Camada | Tecnologias |
+|---|---|
+| Back-end | Python 3.10+, Flask 3.0 |
+| Banco de dados | SQLite, SQLAlchemy (Flask-SQLAlchemy) |
+| Autenticação e segurança | Flask-Login, Flask-WTF (proteção CSRF) |
+| Automações | APScheduler, tzdata |
+| Front-end | HTML (Jinja2), CSS, JavaScript |
+| Maquete 3D | Three.js r128 + OrbitControls (carregados via CDN) |
+
+---
+
+## ▶️ Como executar
+
+**1. Pré-requisitos:** Python 3.10 ou superior, Git e acesso à internet
+(o Three.js da maquete é carregado via CDN).
+
+**2. Clonar o repositório**
+
+```bash
+git clone https://github.com/AndreDias123/Pulse2050_Casa_Inteligente.git
+cd Pulse2050_Casa_Inteligente
+```
+
+**3. Criar o ambiente virtual**
 
 ```bash
 python -m venv .venv
-.venv\Scripts\activate          # Linux/Mac: source .venv/bin/activate
+```
+
+**4. Ativar o ambiente virtual**
+
+```bash
+# Windows
+.venv\Scripts\activate
+
+# Linux / macOS
+source .venv/bin/activate
+```
+
+**5. Instalar as dependências**
+
+```bash
 pip install -r requirements.txt
-python seed.py                  # cria e popula o banco
-python app.py                   # http://localhost:5000
 ```
 
-| Perfil         | E-mail              | Senha    |
-|----------------|---------------------|----------|
-| Administrador  | admin@pulse2050.app | admin123 |
-| Usuário Comum  | comum@pulse2050.app | comum123 |
-
-## Funcionalidades
-
-- **Dispositivos:** 13 aparelhos (luzes, TV, ar, janela, câmeras, robô,
-  porta da garagem...) usando herança e polimorfismo numa tabela só
-  (Single Table Inheritance).
-- **Permissões:** o admin controla tudo; o usuário comum só o que foi liberado.
-- **Automações:** disparam sozinhas no horário e dia configurados.
-- **Energia:** consumo real calculado pelo histórico de uso, comparação
-  semanal, projeção do mês e relatório por e-mail.
-- **Maquete 3D:** casa completa em Three.js — clicar num objeto liga/desliga
-  o dispositivo de verdade. Tem garagem com carro que entra e sai, moradores
-  andando pela casa, portas automáticas e modo dia/noite.
-
-## Estrutura
-
-```
-app.py / config.py / extensions.py   inicialização do Flask
-models.py                            classes e tabelas
-auth.py / main.py / energia.py       rotas
-services/                            energia, relatórios e agendador
-templates/ · static/                 telas, CSS e a cena 3D
-seed.py · smoke_test.py              dados de exemplo e testes
-```
-
-## Testes
+**6. Criar e popular o banco de dados**
 
 ```bash
 python seed.py
-python smoke_test.py    # 24 checagens automáticas
 ```
+
+Cria o `pulse2050.db` com cômodos, dispositivos, usuários, automações e duas
+semanas de histórico de uso. Rodar de novo recria o banco do zero.
+
+**7. Iniciar a aplicação**
+
+```bash
+python app.py
+```
+
+**8. Acessar:** <http://localhost:5000>
+
+---
+
+## 🔑 Contas de demonstração
+
+| Perfil | E-mail | Senha |
+|---|---|---|
+| Administrador | `admin@pulse2050.app` | `admin123` |
+| Usuário Comum | `comum@pulse2050.app` | `comum123` |
+
+> ⚠️ Credenciais criadas pelo `seed.py` exclusivamente para demonstração
+> acadêmica. Não devem ser usadas em ambientes reais.
+
+---
+
+## ⚙️ Funcionalidades
+
+- **Dispositivos:** 13 dispositivos residenciais (luzes, TV, ar-condicionado,
+  janela, câmeras, geladeira, robô aspirador, porta da garagem). A classe
+  `Dispositivo` possui subclasses que sobrescrevem `status()`, `ligar()` e
+  `desligar()` (herança e polimorfismo), persistidas em uma única tabela
+  (Single Table Inheritance).
+- **Permissões:** o Administrador controla todos os dispositivos; o Usuário
+  Comum controla apenas os liberados. A regra fica em
+  `Dispositivo.pode_controlar()` e é aplicada nas rotas e na interface.
+- **Automações:** o agendador verifica a cada minuto as automações ativas e
+  executa as ações no horário e nos dias da semana configurados.
+- **Energia:** consumo (kWh) e custo calculados a partir do histórico de uso,
+  com comparação semanal, projeção mensal, alerta de aumento de consumo,
+  gráfico diário por cômodo e relatório por e-mail (ou prévia, sem SMTP).
+- **Maquete 3D:** residência completa em Three.js, com todos os 13
+  dispositivos representados.
+  - Clicar em um objeto aciona a mesma rota dos cards
+    (`POST /dispositivo/<id>/alternar`), respeitando as permissões.
+  - A cena consulta `GET /api/dispositivos` a cada 5 segundos para refletir
+    mudanças feitas por automações ou por outros usuários.
+  - Inclui garagem com veículo que entra e sai conforme a porta, moradores
+    animados, portas com sensor de presença, tour de câmera e modo dia/noite.
+
+---
+
+## 📁 Estrutura do projeto
+
+| Arquivo / pasta | Responsabilidade |
+|---|---|
+| `app.py` | Cria a aplicação Flask e registra os blueprints |
+| `config.py` | Configurações (banco, chave secreta, fuso horário, SMTP) |
+| `extensions.py` | Instâncias do SQLAlchemy e do Flask-Login |
+| `models.py` | Classes e tabelas do banco de dados |
+| `auth.py` | Login e logout |
+| `main.py` | Painel, controle dos dispositivos e API da maquete 3D |
+| `energia.py` | Painel de energia e relatórios |
+| `services/` | Cálculo de energia, geração de relatórios e agendador de automações |
+| `templates/` | Páginas HTML (Jinja2) |
+| `static/css/` · `static/js/casa3d.js` | Estilos e cena da maquete 3D |
+| `seed.py` | Popula o banco com dados de demonstração |
+| `smoke_test.py` | Testes automatizados de ponta a ponta |
+| `docs/screenshots/` | Capturas de tela do sistema |
+
+---
+
+## ✅ Testes
+
+```bash
+python seed.py        # garante um banco limpo
+python smoke_test.py
+```
+
+O `smoke_test.py` usa o cliente de testes do Flask (não precisa subir o
+servidor) e executa **24 verificações** com resultado OK/FAIL: login dos dois
+perfis, controle de dispositivos, validação da intensidade da luz, painel de
+energia, geração de relatório, bloqueio de acesso sem login, respeito às
+permissões e resposta 404 para rotas inexistentes.
