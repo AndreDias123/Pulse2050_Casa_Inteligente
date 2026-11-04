@@ -9,6 +9,7 @@ publicações diárias do projeto.
 flowchart LR
     S0["🧱 S0<br/>Base"] --> S1["⏰ S1<br/>Automações"] --> S2["⚡ S2<br/>Energia"] --> S3["🔒 S3<br/>Segurança"]
     S3 --> S4["🚀 S4<br/>Publicação"] --> S5["✅ S5<br/>Edital"] --> S6["🏠 S6<br/>Maquete 3D"] --> S7["🚗 S7<br/>Maquete viva"]
+    S7 --> S8["🧠 S8<br/>PULSE AI"]
 ```
 
 **Sprint 0 — A base**
@@ -41,6 +42,10 @@ desliga de verdade. Os 13 dispositivos aparecem na cena.
 **Sprint 7 — Maquete mais viva**
 A maquete ganhou carro entrando na garagem, moradores andando pela casa,
 cômodos mobiliados e modo dia/noite.
+
+**Sprint 8 — PULSE AI**
+Criamos o agente da casa: alertas com prioridade, recomendações com base nos
+dados, um assistente que responde perguntas e sinais de alerta na maquete.
 
 ## O gatilho no Kanban
 

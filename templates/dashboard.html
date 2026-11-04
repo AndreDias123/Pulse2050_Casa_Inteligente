@@ -7,6 +7,20 @@
 {% block content %}
 {% set toggle_tipos = ['luz', 'janela', 'porta', 'tv', 'ar_condicionado', 'robo_aspirador'] %}
 
+{% set ai = pulse_ai_badge() %}
+<a class="card ai-entry {{ ai.status }}" id="ai-entry" href="{{ url_for('pulse_ai.painel') }}" aria-label="Abrir o PULSE AI">
+  <div class="ai-entry-icon">{{ icons.icone('pulse_ai', 26) }}</div>
+  <div class="ai-entry-text">
+    <div class="ai-entry-title">PULSE AI <span class="ai-live"><span class="dot"></span>Monitorando</span></div>
+    <div class="ai-entry-sub" id="ai-entry-sub">
+      {{ ai.monitorados }} dispositivos acompanhados em tempo real ·
+      {% if ai.alertas %}{{ ai.alertas }} alerta(s) aberto(s){% else %}nenhuma ocorrência agora{% endif %}
+    </div>
+  </div>
+  <span class="ai-entry-badge" id="ai-entry-badge" {% if not ai.importantes %}hidden{% endif %}>{{ ai.importantes }} importante(s)</span>
+  <span class="ai-entry-go">Abrir →</span>
+</a>
+
 {% if proxima %}
 <div class="card next-automation">
   <div class="left">
@@ -170,7 +184,13 @@
           carregarScript("https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js", function () {
             var dispositivos = JSON.parse(document.getElementById("dispositivos3d-data").textContent);
             var csrfToken = document.querySelector('meta[name="csrf-token"]').content;
-            window.iniciarCasa3D({ dispositivos: dispositivos, csrfToken: csrfToken });
+            window.iniciarCasa3D({
+              dispositivos: dispositivos, csrfToken: csrfToken,
+              // PULSE AI: alertas/destaques na cena e foco vindo de "Ver na maquete"
+              pulseAiUrl: "{{ url_for('pulse_ai.api_maquete') }}",
+              pulseAiPagina: "{{ url_for('pulse_ai.painel') }}",
+              foco: foco
+            });
           });
         });
       }
@@ -178,7 +198,29 @@
 
     tabCards.addEventListener("click", function () { mostrarView("cards"); });
     tabIso.addEventListener("click", function () { mostrarView("3d"); });
+
+    // Vindo do PULSE AI ("Ver na maquete"): abre a aba 3D já focada no dispositivo.
+    var foco = new URLSearchParams(location.search).get("foco");
+    if (foco || location.hash === "#maquete") {
+      // espera o casa3d.js (defer) estar carregado antes de iniciar a cena
+      document.addEventListener("DOMContentLoaded", function () {
+        mostrarView("3d");
+        document.getElementById("view-3d").scrollIntoView({ block: "start" });
+      });
+    }
   })();
+
+  // Acesso ao PULSE AI acompanha o indicador do menu (atualizado a cada 30 s em base.html).
+  document.addEventListener("pulse-ai-badge", function (ev) {
+    var b = ev.detail, card = document.getElementById("ai-entry");
+    if (!card) return;
+    card.className = "card ai-entry " + b.status;
+    document.getElementById("ai-entry-sub").textContent = b.monitorados + " dispositivos acompanhados em tempo real · "
+      + (b.alertas ? b.alertas + " alerta(s) aberto(s)" : "nenhuma ocorrência agora");
+    var badge = document.getElementById("ai-entry-badge");
+    badge.hidden = !b.importantes;
+    badge.textContent = b.importantes + " importante(s)";
+  });
 </script>
 <script src="{{ url_for('static', filename='js/casa3d.js') }}" defer></script>
 {% endblock %}

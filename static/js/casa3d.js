@@ -18,6 +18,7 @@
  *   9. moradores (casal + cachorro) com caminhada por waypoints
  *  10. portas automáticas com sensor de presença
  *  11. tour automático, HUD, integração com o back-end e laço de animação
+ *  12. PULSE AI: holograma do agente, varredura, marcadores de alerta e foco
  *
  * Planta (metros; +z é a frente da casa, voltada pra rua):
  *   Garagem  x[-13,-7] z[0,6]   |  Sala     x[-7,0] z[0,6]  | Hall/Escritório x[0,7] z[0,6]
@@ -1386,7 +1387,7 @@ window.iniciarCasa3D = function (opts) {
 
     fetch('/dispositivo/' + d.realId + '/alternar', { method: 'POST', headers: csrfHeaders() })
       .catch(function () {})
-      .then(function () { setTimeout(syncFromServer, 300); });
+      .then(function () { setTimeout(syncFromServer, 300); setTimeout(syncPulseAi, 900); });
   }
 
   function syncFromServer() {
@@ -1408,6 +1409,236 @@ window.iniciarCasa3D = function (opts) {
     }).catch(function () {});
   }
   setInterval(syncFromServer, 5000);
+
+  // =====================================================================
+  // 12. PULSE AI na maquete — o agente aparece como um holograma sobre o
+  // hub do escritório (o "cérebro" da casa), um anel de varredura mostra
+  // que o monitoramento está ativo, marcadores flutuam sobre os
+  // dispositivos com ocorrência e o piso do cômodo é sinalizado quando há
+  // Atenção/Crítico. Os dados vêm de GET /pulse-ai/api/maquete (os mesmos
+  // alertas da página do agente); sem essa URL, nada disso é criado.
+  // =====================================================================
+  var AI_COR = { ok: 0x2fd8cf, info: 0x2fd8cf, atencao: 0xfab219, critico: 0xff4d4d };
+  var AI_CSS = { ok: '#2fd8cf', info: '#2fd8cf', atencao: '#fab219', critico: '#ff4d4d' };
+  // limites (x0, z0, x1, z1) de cada cômodo do banco na planta da maquete
+  var ROOM_BOUNDS = { 'Garagem': [-13, 0, -7, 6], 'Sala': [-7, 0, 0, 6], 'Cozinha': [-7, -6, 0, 0], 'Quarto': [0, -6, 7, 0] };
+  var aiState = { status: 'ok', alertas: [], comodos: {}, luzes: [], abertos: [], ativo: false };
+  var flight = null;
+
+  // holograma do agente sobre o hub (escritório)
+  var aiHolo = group(5.4, 1.85, 4.6);
+  var aiHoloMat = new THREE.MeshBasicMaterial({ color: AI_COR.ok, wireframe: true, transparent: true, opacity: 0.85 });
+  var aiHoloCore = new THREE.Mesh(new THREE.IcosahedronGeometry(0.16, 1), aiHoloMat);
+  aiHolo.add(aiHoloCore);
+  var aiHoloRingMat = new THREE.MeshBasicMaterial({ color: AI_COR.ok, transparent: true, opacity: 0.55, side: THREE.DoubleSide });
+  var aiHoloRings = [0.26, 0.34].map(function (r) {
+    var ring = new THREE.Mesh(new THREE.RingGeometry(r - 0.008, r, 48), aiHoloRingMat);
+    ring.rotation.x = -PI / 2; aiHolo.add(ring); return ring;
+  });
+  var aiBeamMat = new THREE.MeshBasicMaterial({ color: AI_COR.ok, transparent: true, opacity: 0.18, depthWrite: false });
+  at(new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.14, 0.62, 16, 1, true), aiBeamMat), 0, -0.36, 0, 0, aiHolo);
+  var aiHoloLight = new THREE.PointLight(AI_COR.ok, 0.35, 3, 2);
+  aiHolo.add(aiHoloLight);
+  aiHolo.scale.setScalar(1.5);
+  aiHolo.visible = false;
+
+  // anel de varredura (monitoramento ativo) a partir do hub
+  var aiScanMat = new THREE.MeshBasicMaterial({ color: AI_COR.ok, transparent: true, opacity: 0, side: THREE.DoubleSide, depthWrite: false });
+  var aiScan = at(new THREE.Mesh(new THREE.RingGeometry(0.96, 1, 96), aiScanMat), -3, 0.06, 0);
+  aiScan.rotation.x = -PI / 2; aiScan.visible = false;
+
+  // marcador (sprite) com "!" para alerta e "i" para informativo
+  var aiTexCache = {};
+  function aiMarkerTex(prioridade) {
+    if (aiTexCache[prioridade]) return aiTexCache[prioridade];
+    var c = document.createElement('canvas'); c.width = c.height = 128;
+    var g = c.getContext('2d'), cor = AI_CSS[prioridade];
+    g.fillStyle = 'rgba(8,10,16,0.85)'; g.beginPath(); g.arc(64, 64, 54, 0, PI * 2); g.fill();
+    g.lineWidth = 8; g.strokeStyle = cor; g.beginPath(); g.arc(64, 64, 50, 0, PI * 2); g.stroke();
+    g.fillStyle = cor; g.font = 'bold 70px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.fillText(prioridade === 'info' ? 'i' : '!', 64, 68);
+    var tex = new THREE.CanvasTexture(c);
+    if (tex.encoding !== undefined) tex.encoding = THREE.sRGBEncoding;
+    return (aiTexCache[prioridade] = tex);
+  }
+  var aiMarkers = {};   // sceneId -> { sprite, prioridade }
+  var aiOverlays = {};  // cômodo -> mesh
+  var aiBox = new THREE.Box3(), aiTmp = new THREE.Vector3();
+
+  function deviceCenter(sceneId, out) {
+    var d = devices[sceneId];
+    // a porta da garagem registra [porta, carro]: o alvo é a porta
+    aiBox.setFromObject(d.meshes[0]);
+    return aiBox.getCenter(out);
+  }
+  function aplicarPulseAi(dados) {
+    aiState.ativo = true;
+    aiState.status = dados.status;
+    aiState.alertas = dados.alertas || [];
+    aiState.comodos = dados.comodos || {};
+    aiState.luzes = dados.luzes_por_comodo || [];
+    aiState.abertos = dados.abertos || [];
+    var cor = AI_COR[dados.status] || AI_COR.ok;
+    aiHolo.visible = true; aiScan.visible = !reducedMotion;
+    aiHoloMat.color.setHex(cor); aiHoloRingMat.color.setHex(cor); aiBeamMat.color.setHex(cor);
+    aiHoloLight.color.setHex(cor); aiScanMat.color.setHex(cor);
+
+    // marcadores: pior prioridade por dispositivo (+ "i" pra porta/janela aberta sem alerta)
+    var peso = { info: 1, atencao: 2, critico: 3 }, alvo = {};
+    aiState.alertas.forEach(function (a) {
+      var id = NAME_TO_SCENE[a.dispositivo];
+      if (id && devices[id] && (!alvo[id] || peso[a.prioridade] > peso[alvo[id]])) alvo[id] = a.prioridade;
+    });
+    aiState.abertos.forEach(function (o) {
+      var id = NAME_TO_SCENE[o.dispositivo];
+      if (id && devices[id] && !alvo[id]) alvo[id] = 'info';
+    });
+    Object.keys(aiMarkers).forEach(function (id) {
+      if (!alvo[id]) { scene.remove(aiMarkers[id].sprite); delete aiMarkers[id]; }
+    });
+    Object.keys(alvo).forEach(function (id) {
+      var m = aiMarkers[id];
+      if (!m) {
+        var sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: aiMarkerTex(alvo[id]), depthTest: false, transparent: true }));
+        sp.renderOrder = 10; sp.scale.set(0.85, 0.85, 1);
+        scene.add(sp);
+        m = aiMarkers[id] = { sprite: sp, prioridade: alvo[id], fase: Math.random() * PI * 2 };
+      } else if (m.prioridade !== alvo[id]) {
+        m.sprite.material.map = aiMarkerTex(alvo[id]); m.sprite.material.needsUpdate = true; m.prioridade = alvo[id];
+      }
+    });
+
+    // piso do cômodo com ocorrência de Atenção/Crítico
+    Object.keys(aiOverlays).forEach(function (nome) {
+      if (!aiState.comodos[nome]) { scene.remove(aiOverlays[nome]); delete aiOverlays[nome]; }
+    });
+    Object.keys(aiState.comodos).forEach(function (nome) {
+      var b = ROOM_BOUNDS[nome];
+      if (!b) return;
+      var corCom = AI_COR[aiState.comodos[nome]];
+      var ov = aiOverlays[nome];
+      if (!ov) {
+        // preenchimento translúcido + moldura brilhante no contorno do cômodo
+        var w = b[2] - b[0] - 0.3, dpt = b[3] - b[1] - 0.3;
+        ov = group((b[0] + b[2]) / 2, 0.035, (b[1] + b[3]) / 2);
+        var fillMat = new THREE.MeshBasicMaterial({ color: corCom, transparent: true, opacity: 0.2, depthWrite: false });
+        var fill = new THREE.Mesh(new THREE.PlaneGeometry(w, dpt), fillMat);
+        fill.rotation.x = -PI / 2; ov.add(fill);
+        var bordaMat = new THREE.MeshBasicMaterial({ color: corCom, transparent: true, opacity: 0.85, depthWrite: false });
+        [[w, 0.07, 0, dpt / 2], [w, 0.07, 0, -dpt / 2], [0.07, dpt, w / 2, 0], [0.07, dpt, -w / 2, 0]].forEach(function (e) {
+          var s = new THREE.Mesh(new THREE.PlaneGeometry(e[0], e[1]), bordaMat);
+          s.rotation.x = -PI / 2; s.position.set(e[2], 0.004, e[3]); ov.add(s);
+        });
+        ov.userData.fill = fillMat; ov.userData.borda = bordaMat;
+        aiOverlays[nome] = ov;
+      }
+      ov.userData.fill.color.setHex(corCom); ov.userData.borda.color.setHex(corCom);
+      ov.userData.critico = aiState.comodos[nome] === 'critico';
+    });
+    renderAiHud();
+  }
+
+  // painel do agente no HUD da maquete
+  var aiHud = document.createElement('div');
+  aiHud.className = 'iso3d-ai';
+  aiHud.hidden = true;
+  wrap.appendChild(aiHud);
+  function renderAiHud() {
+    aiHud.hidden = false;
+    aiHud.className = 'iso3d-ai ' + aiState.status;
+    aiHud.textContent = '';
+    var head = document.createElement('div'); head.className = 'iso3d-ai-head';
+    var dot = document.createElement('span'); dot.className = 'dot'; head.appendChild(dot);
+    head.appendChild(document.createTextNode('PULSE AI · monitorando'));
+    if (opts.pulseAiPagina) {
+      var a = document.createElement('a'); a.href = opts.pulseAiPagina; a.textContent = 'abrir'; head.appendChild(a);
+    }
+    aiHud.appendChild(head);
+    var sub = document.createElement('div'); sub.className = 'iso3d-ai-sub';
+    sub.textContent = (aiState.alertas.length ? aiState.alertas.length + ' ocorrência(s)' : 'Sem ocorrências')
+      + ' · luz acesa: ' + (aiState.luzes.length ? aiState.luzes.join(', ') : 'nenhum cômodo');
+    aiHud.appendChild(sub);
+    if (aiState.alertas.length) {
+      var ul = document.createElement('ul'); ul.className = 'iso3d-ai-list';
+      aiState.alertas.slice(0, 4).forEach(function (al) {
+        var li = document.createElement('li'), b = document.createElement('button');
+        b.type = 'button';
+        var p = document.createElement('span'); p.className = 'p ' + al.prioridade; b.appendChild(p);
+        b.appendChild(document.createTextNode(al.titulo + ' — ' + al.dispositivo));
+        b.addEventListener('click', function () { focusDevice(NAME_TO_SCENE[al.dispositivo], al.titulo); });
+        li.appendChild(b); ul.appendChild(li);
+      });
+      aiHud.appendChild(ul);
+    }
+  }
+
+  function syncPulseAi() {
+    if (!opts.pulseAiUrl || document.hidden) return;
+    fetch(opts.pulseAiUrl, { credentials: 'same-origin' })
+      .then(function (r) { if (!r.ok) throw r; return r.json(); })
+      .then(aplicarPulseAi)
+      .catch(function () {});
+  }
+  if (opts.pulseAiUrl) { syncPulseAi(); setInterval(syncPulseAi, 5000); }
+
+  // leva a câmera até o dispositivo (vindo de "Ver na maquete" ou do HUD)
+  function focusDevice(sceneId, motivo) {
+    var d = devices[sceneId];
+    if (!d) return;
+    var c = deviceCenter(sceneId, new THREE.Vector3());
+    var dir = new THREE.Vector3(c.x + 3, 0, c.z);
+    if (dir.lengthSq() < 0.01) dir.set(0, 0, 1);
+    dir.normalize();
+    var toPos = new THREE.Vector3(c.x + dir.x * 5.5, Math.max(4.5, c.y + 4.5), c.z + dir.z * 5.5);
+    if (!freeMode) setFreeMode(true);
+    playing = false; syncPlayIcon();
+    flight = { fromPos: camera.position.clone(), fromTarget: orbit.target.clone(), toPos: toPos, toTarget: c, t: 0 };
+    roomLabel.textContent = d.name;
+    showToast(d.name, d.on, motivo || 'Destacado pelo PULSE AI');
+  }
+  if (opts.foco && NAME_TO_SCENE[opts.foco]) {
+    setTimeout(function () { focusDevice(NAME_TO_SCENE[opts.foco], 'Aberto a partir do PULSE AI'); }, 700);
+  }
+
+  function updatePulseAi(dt, t) {
+    if (!aiState.ativo) return;
+    var anim = !reducedMotion;
+    aiHoloCore.rotation.y = anim ? t * 0.8 : 0;
+    aiHoloCore.rotation.x = anim ? t * 0.35 : 0;
+    aiHoloRings[0].rotation.z = anim ? t * 0.9 : 0;
+    aiHoloRings[1].rotation.z = anim ? -t * 0.6 : 0;
+    aiHolo.position.y = 1.85 + (anim ? Math.sin(t * 1.6) * 0.04 : 0);
+    if (anim) {
+      var ph = (t / 4) % 1;  // uma varredura a cada 4 s
+      var r = 0.5 + ph * 12;
+      aiScan.scale.set(r, r, 1);
+      aiScanMat.opacity = 0.5 * (1 - ph);
+    }
+    Object.keys(aiMarkers).forEach(function (id) {
+      var m = aiMarkers[id];
+      deviceCenter(id, aiTmp);
+      var bob = anim ? Math.sin(t * 2.2 + m.fase) * 0.08 : 0;
+      m.sprite.position.set(aiTmp.x, aiBox.max.y + 0.6 + bob, aiTmp.z);
+      var s = m.prioridade === 'critico' && anim ? 0.85 + Math.sin(t * 5) * 0.09 : 0.85;
+      m.sprite.scale.set(s, s, 1);
+    });
+    Object.keys(aiOverlays).forEach(function (nome) {
+      var ov = aiOverlays[nome];
+      var pulso = anim ? Math.sin(t * (ov.userData.critico ? 4 : 2)) : 0;
+      ov.userData.fill.opacity = (ov.userData.critico ? 0.3 : 0.18) + pulso * 0.08;
+      ov.userData.borda.opacity = 0.75 + pulso * 0.25;
+    });
+  }
+
+  function updateFlight(dt) {
+    if (!flight) return false;
+    flight.t = Math.min(1, flight.t + dt / (reducedMotion ? 0.01 : 1.3));
+    var k = easeInOut(flight.t);
+    camera.position.lerpVectors(flight.fromPos, flight.toPos, k);
+    orbit.target.lerpVectors(flight.fromTarget, flight.toTarget, k);
+    if (flight.t >= 1) flight = null;
+    return true;
+  }
 
   // ---------- clique/toque e hover em dispositivos (raycasting) ----------
   var raycaster = new THREE.Raycaster();
@@ -1457,6 +1688,7 @@ window.iniciarCasa3D = function (opts) {
     updateGarage(dt, t);
     if (!reducedMotion) updateRobot(dt);
     updateDoors(dt);
+    updatePulseAi(dt, t);
     if (!reducedMotion) for (var i = 0; i < agents.length; i++) agents[i].update(dt, t);
 
     // janela + persiana
@@ -1502,6 +1734,7 @@ window.iniciarCasa3D = function (opts) {
       fill.style.width = (frac * 100) + '%';
       roomLabel.textContent = labelFor(frac);
     } else if (freeMode) {
+      updateFlight(dt);
       orbit.update();
     }
     renderer.render(scene, camera);
@@ -1530,6 +1763,7 @@ window.iniciarCasa3D = function (opts) {
     opts.onReady({
       camera: camera, orbit: orbit, setFreeMode: setFreeMode, toggleDevice: toggleDevice,
       garage: garage, devices: devices, agents: agents, simulate: simulate,
+      pulseAi: aiState, aplicarPulseAi: aplicarPulseAi, focusDevice: focusDevice, aiMarkers: aiMarkers, aiOverlays: aiOverlays,
       render: function () { renderer.render(scene, camera); }
     });
   }

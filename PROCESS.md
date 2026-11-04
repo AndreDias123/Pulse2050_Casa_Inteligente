@@ -51,6 +51,24 @@ tentou, o que deu errado e por que escolhemos cada solução.
 - **Depois evoluímos:** carro que entra e sai da garagem, moradores andando
   pela casa, cômodos mobiliados e modo dia/noite — sem mexer no back-end.
 
+### 6. PULSE AI — o agente da casa
+- **Problema:** o sistema mostrava o estado de cada aparelho, mas ninguém
+  avisava quando algo saía do normal (garagem aberta há meia hora, luz acesa a
+  tarde toda, ar ligado com a janela aberta).
+- **Solução:** um agente baseado em regras (`services/pulse_ai.py`) que lê o
+  histórico de uso pra saber *há quanto tempo* cada coisa está assim e gera
+  alertas com prioridade, recomendações justificadas e um assistente que
+  responde com os dados do banco. Os alertas também aparecem na maquete.
+- **Decisões:** não criamos estrutura paralela — o agente reaproveita o
+  `RegistroUso`, o cálculo de energia, o agendador (roda a cada minuto) e o
+  `pode_controlar()`. Ações pedidas ao assistente só acontecem depois de
+  confirmação. Escolhemos regras transparentes em vez de um modelo de
+  linguagem: cada alerta pode ser conferido no banco.
+- **O que aprendemos:** resolver um alerta não podia fazer ele voltar no
+  minuto seguinte. Cada alerta ganhou uma "chave" do episódio (aparelho +
+  momento em que a situação começou), e quando a situação acaba ele é
+  resolvido sozinho e vai pro histórico.
+
 ## Estruturas de dados — por que cada escolha
 
 | Escolha | Por quê |
@@ -60,6 +78,7 @@ tentou, o que deu errado e por que escolhemos cada solução.
 | **`set`** pros dias da semana da automação | O agendador checa a cada minuto, então a checagem precisa ser rápida. |
 | **Ordenação no banco** | O SQLite já ordena bem; repetir isso em Python seria desperdício. |
 | **Lista simples** pro ranking de consumo | Uma casa tem poucas dezenas de dispositivos — não precisa de algo mais complexo. |
+| **Dicionário por chave de episódio** nos alertas do PULSE AI | Confere em uma busca se aquela situação já tem alerta, sem duplicar. |
 
 ## Como testamos
 
@@ -68,3 +87,6 @@ tentou, o que deu errado e por que escolhemos cada solução.
 - O agendador foi testado chamando a função direto, sem esperar o relógio.
 - Na maquete, simulamos a mesma chamada que o clique faz e conferimos que o
   estado mudou no banco; a parte visual foi conferida no navegador.
+- `pulse_ai_test.py` cria situações reais (abre a garagem e "adianta o relógio"
+  do evento) e confere se o agente detecta, prioriza, resolve, responde e
+  respeita as permissões — **52 checagens**.

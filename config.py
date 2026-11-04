@@ -32,3 +32,15 @@ class Config:
     SMTP_USER = os.environ.get("SMTP_USER")
     SMTP_SENHA = os.environ.get("SMTP_SENHA")
     SMTP_REMETENTE = os.environ.get("SMTP_REMETENTE", "relatorios@pulse2050.app")
+
+    # PULSE AI (services/pulse_ai.py) — limites que transformam um estado em
+    # alerta. Configuráveis por variável de ambiente pra ajustar à rotina da casa.
+    PULSE_AI_LUZ_HORAS = float(os.environ.get("PULSE_AI_LUZ_HORAS", "4"))          # luz ligada há mais que isso
+    PULSE_AI_PORTA_MINUTOS = float(os.environ.get("PULSE_AI_PORTA_MINUTOS", "10"))  # porta aberta há mais que isso
+    PULSE_AI_JANELA_MINUTOS = float(os.environ.get("PULSE_AI_JANELA_MINUTOS", "60"))
+    PULSE_AI_AC_HORAS = float(os.environ.get("PULSE_AI_AC_HORAS", "8"))
+    PULSE_AI_BATERIA_MIN = int(os.environ.get("PULSE_AI_BATERIA_MIN", "20"))        # % do robô aspirador
+    # Motor de conversa: hoje só existe "regras" (responde com os dados do banco,
+    # sem modelo de linguagem). A interface em services/pulse_ai_chat.py deixa
+    # espaço pra plugar um LLM no futuro sem mudar rotas nem tela.
+    PULSE_AI_MOTOR = os.environ.get("PULSE_AI_MOTOR", "regras")

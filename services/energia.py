@@ -26,6 +26,18 @@ def tarifa_atual():
 
 def kwh_consumidos(dispositivo: Dispositivo, inicio: datetime, fim: datetime) -> float:
     """kWh consumidos por um dispositivo entre `inicio` e `fim`."""
+    return horas_ligado(dispositivo, inicio, fim) * dispositivo.potencia_watts / 1000
+
+
+def horas_ligado(dispositivo: Dispositivo, inicio: datetime, fim: datetime) -> float:
+    """Horas que o dispositivo ficou ligado entre `inicio` e `fim`."""
+    return sum((b - a).total_seconds() for a, b in intervalos_ligado(dispositivo, inicio, fim)) / 3600
+
+
+def intervalos_ligado(dispositivo: Dispositivo, inicio: datetime, fim: datetime):
+    """Lista de (ligou_em, desligou_em) dentro de [inicio, fim], emparelhando
+    os eventos ligou/desligou do RegistroUso. É a base do kWh e também dos
+    padrões de uso que o PULSE AI analisa (services/pulse_ai.py)."""
     eventos = (
         RegistroUso.query.filter(
             RegistroUso.dispositivo_id == dispositivo.id,
@@ -35,7 +47,7 @@ def kwh_consumidos(dispositivo: Dispositivo, inicio: datetime, fim: datetime) ->
         .all()
     )
 
-    horas_ligado = 0.0
+    intervalos = []
     ligou_em = None
     for ev in eventos:
         ts = ev.timestamp if ev.timestamp.tzinfo else ev.timestamp.replace(tzinfo=timezone.utc)
@@ -44,15 +56,15 @@ def kwh_consumidos(dispositivo: Dispositivo, inicio: datetime, fim: datetime) ->
         elif ev.evento == "desligou" and ligou_em is not None:
             fim_intervalo = min(ts, fim)
             if fim_intervalo > ligou_em:
-                horas_ligado += (fim_intervalo - ligou_em).total_seconds() / 3600
+                intervalos.append((ligou_em, fim_intervalo))
             ligou_em = None
 
     # se ainda está ligado no fim do período (não desligou), conta até `fim`
     if ligou_em is not None and dispositivo.ativo:
         if fim > ligou_em:
-            horas_ligado += (fim - ligou_em).total_seconds() / 3600
+            intervalos.append((ligou_em, fim))
 
-    return horas_ligado * dispositivo.potencia_watts / 1000
+    return intervalos
 
 
 def resumo_consumo(dispositivos, inicio: datetime, fim: datetime):

@@ -98,7 +98,25 @@ flowchart LR
 Se uma automação ligar algo ou outra pessoa mexer em outra aba, a maquete
 mostra a mudança em poucos segundos, sem recarregar a página.
 
-## 7. Fluxo completo
+## 7. PULSE AI
+
+```mermaid
+flowchart LR
+    T(["⏰ A cada minuto<br/>ou ao abrir a página"]) --> L["Lê estado +<br/>RegistroUso"]
+    L --> R{"Passou de<br/>algum limite?"}
+    R -- sim --> A[("AlertaAgente<br/>Info / Atenção / Crítico")]
+    R -- "situação acabou" --> RS["Resolve sozinho<br/>e vai pro histórico"]
+    A --> P["Página PULSE AI<br/>+ painel + maquete"]
+    U["👤 Pergunta no<br/>assistente"] --> C["Responde com<br/>dados do banco"]
+    C -- "pediu pra desligar" --> Q{"Confirmou e<br/>pode_controlar()?"}
+    Q -- sim --> X["ligar() / desligar()"]
+```
+
+O agente não tem estrutura própria de dispositivos: ele lê os mesmos dados do
+sistema e, quando executa uma ação, usa o mesmo `ligar()`/`desligar()` com a
+mesma regra de permissão.
+
+## 8. Fluxo completo
 
 Aqui estão todas as partes acima em um só diagrama, para ter a visão
 analítica do sistema inteiro.
@@ -170,6 +188,16 @@ flowchart TD
 
     DB -.-> API
     MQ -.-> S5
+
+    subgraph AI["🧠 PULSE AI"]
+        AV["Avalia regras"] --> AA["Alertas e<br/>recomendações"]
+        AA --> AS["Assistente"]
+    end
+
+    DB --> AV
+    T -.-> AV
+    AA -.-> MQ
+    AS -- "ação confirmada" --> P
 ```
 
 ## O que vale reparar
@@ -182,3 +210,5 @@ flowchart TD
   painel de energia nos dois casos.
 - **A maquete não tem lógica própria:** ela é só outra tela por cima das
   mesmas rotas.
+- **O PULSE AI também não:** lê o mesmo histórico e, quando age, passa pela
+  mesma permissão.

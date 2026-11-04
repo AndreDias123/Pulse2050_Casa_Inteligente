@@ -9,7 +9,9 @@ por horário e analisa o consumo de energia com base no histórico real de uso,
 tornando a residência mais eficiente e fácil de gerenciar. Uma **maquete 3D
 interativa** representa a casa e está ligada ao mesmo back-end: cada ação
 feita nela altera o estado do dispositivo no banco de dados, e cada mudança
-no banco aparece na maquete.
+no banco aparece na maquete. O **PULSE AI**, agente de monitoramento da
+residência, acompanha esses dados e gera alertas, recomendações e respostas
+sobre o funcionamento da casa.
 
 ---
 
@@ -125,6 +127,23 @@ python app.py
     mudanças feitas por automações ou por outros usuários.
   - Inclui garagem com veículo que entra e sai conforme a porta, moradores
     animados, portas com sensor de presença, tour de câmera e modo dia/noite.
+- **PULSE AI:** agente inteligente de monitoramento, acessível pelo painel e
+  pelo menu lateral (`/pulse-ai/`).
+  - **Monitoramento:** estado de cada dispositivo e há quanto tempo está assim,
+    obtido do histórico de uso.
+  - **Alertas** com prioridade (Informativo, Atenção, Crítico), por exemplo:
+    porta aberta além do limite, luz ligada há horas, ar-condicionado ligado
+    com a janela aberta e automação sem registro de execução. Podem ser
+    marcados como vistos ou resolvidos e ficam no histórico.
+  - **Recomendações** justificadas pelos dados: maior consumidor, aumento de
+    consumo e horários sugeridos para automações.
+  - **Assistente conversacional** que responde com os dados reais do banco.
+    Ações sobre dispositivos exigem confirmação e respeitam as permissões.
+  - **Na maquete 3D:** holograma do agente, marcadores sobre os dispositivos
+    com alerta e sinalização do cômodo com ocorrência.
+  - É um motor de regras (limites configuráveis em `config.py`), sem modelo de
+    linguagem conectado; a arquitetura do assistente permite essa integração
+    no futuro.
 
 ---
 
@@ -139,11 +158,12 @@ python app.py
 | `auth.py` | Login e logout |
 | `main.py` | Painel, controle dos dispositivos e API da maquete 3D |
 | `energia.py` | Painel de energia e relatórios |
-| `services/` | Cálculo de energia, geração de relatórios e agendador de automações |
+| `pulse_ai.py` | Rotas do PULSE AI (página e API do agente) |
+| `services/` | Cálculo de energia, relatórios, agendador de automações e o PULSE AI (`pulse_ai.py`, `pulse_ai_chat.py`) |
 | `templates/` | Páginas HTML (Jinja2) |
-| `static/css/` · `static/js/casa3d.js` | Estilos e cena da maquete 3D |
+| `static/css/` · `static/js/` | Estilos, cena da maquete 3D (`casa3d.js`) e página do agente (`pulse_ai.js`) |
 | `seed.py` | Popula o banco com dados de demonstração |
-| `smoke_test.py` | Testes automatizados de ponta a ponta |
+| `smoke_test.py` · `pulse_ai_test.py` | Testes automatizados do sistema e do PULSE AI |
 | `docs/screenshots/` | Capturas de tela do sistema |
 
 ---
@@ -151,12 +171,22 @@ python app.py
 ## ✅ Testes
 
 ```bash
-python seed.py        # garante um banco limpo
+python seed.py           # garante um banco limpo
 python smoke_test.py
+
+python seed.py
+python pulse_ai_test.py
 ```
 
-O `smoke_test.py` usa o cliente de testes do Flask (não precisa subir o
-servidor) e executa **24 verificações** com resultado OK/FAIL: login dos dois
-perfis, controle de dispositivos, validação da intensidade da luz, painel de
-energia, geração de relatório, bloqueio de acesso sem login, respeito às
-permissões e resposta 404 para rotas inexistentes.
+Os dois arquivos usam o cliente de testes do Flask (não precisam subir o
+servidor) e mostram o resultado OK/FAIL de cada verificação.
+
+- `smoke_test.py` — **24 verificações**: login dos dois perfis, controle de
+  dispositivos, validação da intensidade da luz, painel de energia, geração de
+  relatório, bloqueio de acesso sem login, respeito às permissões e resposta
+  404 para rotas inexistentes.
+- `pulse_ai_test.py` — **52 verificações** do agente: indicadores iguais ao
+  banco, geração e escalonamento de alertas, resolução manual e automática,
+  integração com a maquete, respostas do assistente, confirmação de ações,
+  proteção CSRF, permissões do Usuário Comum e compatibilidade com as telas
+  anteriores.

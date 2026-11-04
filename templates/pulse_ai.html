@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+{% import "_icons.html" as icons %}
+{% block title %}PULSE AI — PULSE2050{% endblock %}
+{% block header %}PULSE AI{% endblock %}
+{% block subheader %}Central de inteligência da residência · monitoramento, alertas e recomendações com os dados reais da casa{% endblock %}
+
+{% block content %}
+<div class="ai-page" id="ai-page">
+
+  <section class="card ai-hero" aria-label="Status do PULSE AI">
+    <div class="ai-hero-grid" aria-hidden="true"></div>
+    <div class="ai-hero-icon">
+      {{ icons.icone('pulse_ai', 34) }}
+      <span class="ring r1"></span><span class="ring r2"></span>
+    </div>
+    <div class="ai-hero-main">
+      <div class="ai-hero-title">
+        PULSE AI
+        <span class="ai-status-pill" id="ai-status-pill"><span class="dot"></span><span id="ai-status-text">Conectando…</span></span>
+      </div>
+      <div class="ai-hero-sub">
+        <span class="ai-live"><span class="dot"></span>Monitoramento ativo</span>
+        · <b id="ai-mon-count">—</b> dispositivos · atualizado às <b id="ai-updated">—</b>
+      </div>
+      <div class="ai-hero-meta">
+        {{ motor.descricao }} Limites de alerta: luz {{ '%g'|format(limites.luz_horas) }}h ·
+        porta {{ '%g'|format(limites.porta_min) }} min · janela {{ '%g'|format(limites.janela_min) }} min ·
+        ar-condicionado {{ '%g'|format(limites.ac_horas) }}h.
+      </div>
+    </div>
+    <div class="ai-hero-health" id="ai-hero-health" title="Dispositivos sem alerta de Atenção ou Crítico"></div>
+  </section>
+
+  <section class="ai-kpis" id="ai-kpis" aria-label="Visão geral da residência"></section>
+
+  <div class="ai-grid-2">
+    <section class="card ai-panel" aria-labelledby="ai-alerts-title">
+      <div class="ai-panel-head">
+        <div>
+          <h2 id="ai-alerts-title">Central de alertas</h2>
+          <div class="ai-panel-sub">Gerados a partir do estado e do histórico dos dispositivos</div>
+        </div>
+        <div class="ai-tabs" role="tablist">
+          <button type="button" class="chip active" data-aba="ativos" role="tab">Ativos <span id="ai-tab-ativos">0</span></button>
+          <button type="button" class="chip" data-aba="historico" role="tab">Histórico</button>
+        </div>
+      </div>
+      <div id="ai-alerts" class="ai-alerts"></div>
+    </section>
+
+    <section class="card ai-panel ai-chat" aria-labelledby="ai-chat-title">
+      <div class="ai-panel-head">
+        <div>
+          <h2 id="ai-chat-title">Assistente PULSE AI</h2>
+          <div class="ai-panel-sub">Respostas montadas pelo motor de regras com os dados do banco — sem modelo de linguagem conectado</div>
+        </div>
+        <button type="button" class="ai-link-btn" id="ai-chat-clear">Limpar</button>
+      </div>
+      <div class="ai-chat-log" id="ai-chat-log" aria-live="polite"></div>
+      <div class="ai-chat-suggest" id="ai-chat-suggest">
+        <button type="button" class="chip">Quantas luzes estão ligadas?</button>
+        <button type="button" class="chip">Existe alguma porta aberta?</button>
+        <button type="button" class="chip">Como está a garagem?</button>
+        <button type="button" class="chip">Qual cômodo consome mais energia?</button>
+        <button type="button" class="chip">Existem alertas pendentes?</button>
+        <button type="button" class="chip">O que posso melhorar na casa?</button>
+      </div>
+      <form class="ai-chat-form" id="ai-chat-form" autocomplete="off">
+        <input type="text" id="ai-chat-input" maxlength="500" placeholder="Pergunte sobre a casa ou peça “desligar a luz da sala”" aria-label="Mensagem para o PULSE AI">
+        <button type="submit" class="btn-accent">Enviar</button>
+      </form>
+    </section>
+  </div>
+
+  <section class="card ai-panel" aria-labelledby="ai-monitor-title">
+    <div class="ai-panel-head">
+      <div>
+        <h2 id="ai-monitor-title">Monitoramento em tempo real</h2>
+        <div class="ai-panel-sub">Estado atual de cada dispositivo e há quanto tempo está assim</div>
+      </div>
+    </div>
+    <div class="ai-monitor" id="ai-monitor"></div>
+  </section>
+
+  <div class="ai-grid-2">
+    <section class="card ai-panel" aria-labelledby="ai-recs-title">
+      <div class="ai-panel-head">
+        <div>
+          <h2 id="ai-recs-title">Inteligência e recomendações</h2>
+          <div class="ai-panel-sub">Cada sugestão mostra os dados que a justificam</div>
+        </div>
+      </div>
+      <div class="ai-recs" id="ai-recs"><div class="ai-empty">Analisando o histórico…</div></div>
+    </section>
+
+    <div class="ai-col">
+      <section class="card ai-panel" aria-labelledby="ai-health-title">
+        <div class="ai-panel-head"><div><h2 id="ai-health-title">Saúde da residência</h2></div></div>
+        <div id="ai-health"></div>
+      </section>
+      <section class="card ai-panel" aria-labelledby="ai-summary-title">
+        <div class="ai-panel-head"><div><h2 id="ai-summary-title">Resumo do dia</h2><div class="ai-panel-sub" id="ai-summary-date"></div></div></div>
+        <div id="ai-summary"></div>
+      </section>
+    </div>
+  </div>
+
+  <section class="card ai-panel" aria-labelledby="ai-timeline-title">
+    <div class="ai-panel-head">
+      <div>
+        <h2 id="ai-timeline-title">Linha do tempo</h2>
+        <div class="ai-panel-sub">Mudanças de estado, ocorrências e ações do agente nas últimas 24 horas</div>
+      </div>
+    </div>
+    <div class="ai-timeline" id="ai-timeline"></div>
+  </section>
+</div>
+
+<script>
+  window.PULSE_AI_CONFIG = {
+    csrf: document.querySelector('meta[name="csrf-token"]').content,
+    estado: "{{ url_for('pulse_ai.api_estado') }}",
+    recomendacoes: "{{ url_for('pulse_ai.api_recomendacoes') }}",
+    chat: "{{ url_for('pulse_ai.api_chat') }}",
+    executar: "{{ url_for('pulse_ai.api_executar') }}",
+    alertaBase: "{{ url_for('pulse_ai.painel') }}api/alertas/",
+    maquete: "{{ url_for('main.dashboard') }}",
+    detalheBase: "{{ url_for('main.dashboard') }}dispositivo/"
+  };
+</script>
+<script src="{{ url_for('static', filename='js/pulse_ai.js') }}" defer></script>
+{% endblock %}

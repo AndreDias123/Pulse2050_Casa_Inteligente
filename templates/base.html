@@ -22,6 +22,13 @@
     <a class="navbtn {{ 'active' if request.endpoint and request.endpoint.startswith('energia.') else '' }}" href="{{ url_for('energia.painel') }}" title="Energia">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M13 3 L6 14 H11 L10 21 L18 10 H12 Z"/></svg>
     </a>
+    {% import "_icons.html" as base_icons %}
+    {% set ai_badge = pulse_ai_badge() %}
+    <a class="navbtn ai-nav {{ 'active' if request.endpoint and request.endpoint.startswith('pulse_ai.') else '' }}" href="{{ url_for('pulse_ai.painel') }}"
+       title="PULSE AI{{ ' · ' ~ ai_badge.alertas ~ ' alerta(s)' if ai_badge.alertas else ' · monitorando' }}" aria-label="PULSE AI">
+      {{ base_icons.icone('pulse_ai', 21) }}
+      <span class="ai-nav-dot {{ ai_badge.status }}" id="ai-nav-dot"></span>
+    </a>
     <div style="flex:1;"></div>
     <a class="navbtn" href="{{ url_for('auth.logout') }}" title="Sair">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M15 4 H19 V20 H15 M10 8 L4 12 L10 16 M4 12 H15"/></svg>
@@ -55,6 +62,26 @@
     </div>
   </div>
 </div>
+<script>
+  // Indicador do PULSE AI no menu (e no acesso do painel, se existir):
+  // atualiza a cor/contagem a cada 30 s sem recarregar a página.
+  (function () {
+    var dot = document.getElementById("ai-nav-dot");
+    if (!dot) return;
+    function atualizar() {
+      if (document.hidden) return;
+      fetch("{{ url_for('pulse_ai.api_badge') }}", { credentials: "same-origin" })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (b) {
+          if (!b) return;
+          dot.className = "ai-nav-dot " + b.status;
+          dot.parentNode.title = "PULSE AI" + (b.alertas ? " · " + b.alertas + " alerta(s)" : " · monitorando");
+          document.dispatchEvent(new CustomEvent("pulse-ai-badge", { detail: b }));
+        }).catch(function () {});
+    }
+    setInterval(atualizar, 30000);
+  })();
+</script>
 {% else %}
   {% block guest_content %}{% endblock %}
 {% endif %}

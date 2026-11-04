@@ -299,3 +299,49 @@ class RelatorioEnviado(db.Model):
     enviado_de_verdade = db.Column(db.Boolean, nullable=False, default=False)
 
     usuario = db.relationship("Usuario", back_populates="relatorios")
+
+
+# ---------------------------------------------------------------------------
+# PULSE AI — alertas gerados pelo agente e ações executadas por ele
+# ---------------------------------------------------------------------------
+class AlertaAgente(db.Model):
+    """Ocorrência detectada pelo PULSE AI (services/pulse_ai.py) a partir do
+    estado real dos dispositivos. `chave` identifica o *episódio* (ex.: "a luz
+    X ligada desde 18:00"), então resolver um alerta não faz ele reaparecer
+    enquanto a mesma situação continuar — só um episódio novo gera alerta novo.
+    Nada é apagado: alertas resolvidos ficam como histórico."""
+    __tablename__ = "alertas_agente"
+
+    id = db.Column(db.Integer, primary_key=True)
+    chave = db.Column(db.String(160), nullable=False, index=True)
+    tipo = db.Column(db.String(40), nullable=False)            # ex.: 'luz_tempo', 'porta_aberta'
+    prioridade = db.Column(db.String(10), nullable=False)      # 'info' | 'atencao' | 'critico'
+    dispositivo_id = db.Column(db.Integer, db.ForeignKey("dispositivos.id"), nullable=True)
+    titulo = db.Column(db.String(160), nullable=False)
+    descricao = db.Column(db.String(400), nullable=False)
+    sugestao = db.Column(db.String(300), nullable=False)
+    status = db.Column(db.String(12), nullable=False, default="ativo")  # 'ativo' | 'visto' | 'resolvido'
+    detectado_em = db.Column(db.DateTime, default=agora, nullable=False)
+    visto_em = db.Column(db.DateTime, nullable=True)
+    resolvido_em = db.Column(db.DateTime, nullable=True)
+    resolvido_por_id = db.Column(db.Integer, db.ForeignKey("usuarios.id"), nullable=True)  # nulo = condição normalizou sozinha
+
+    dispositivo = db.relationship("Dispositivo")
+    resolvido_por = db.relationship("Usuario")
+
+
+class AcaoAgente(db.Model):
+    """Registro de cada ação que o PULSE AI executou a pedido de alguém (pelo
+    assistente, sempre depois de confirmação). O efeito no dispositivo também
+    vai pro RegistroUso normal, pelo mesmo ligar()/desligar() de sempre."""
+    __tablename__ = "acoes_agente"
+
+    id = db.Column(db.Integer, primary_key=True)
+    usuario_id = db.Column(db.Integer, db.ForeignKey("usuarios.id"), nullable=False)
+    dispositivo_id = db.Column(db.Integer, db.ForeignKey("dispositivos.id"), nullable=False)
+    acao = db.Column(db.String(20), nullable=False)       # 'ligar' | 'desligar'
+    pedido = db.Column(db.String(300), nullable=True)     # frase que originou a ação
+    timestamp = db.Column(db.DateTime, default=agora, nullable=False)
+
+    usuario = db.relationship("Usuario")
+    dispositivo = db.relationship("Dispositivo")

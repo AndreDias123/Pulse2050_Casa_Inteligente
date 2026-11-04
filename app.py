@@ -31,10 +31,12 @@ def create_app(config_class=Config):
     from auth import bp as auth_bp
     from main import bp as main_bp
     from energia import bp as energia_bp
+    from pulse_ai import bp as pulse_ai_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(main_bp)
     app.register_blueprint(energia_bp)
+    app.register_blueprint(pulse_ai_bp)
 
     # Flask-Login chama isso pra recarregar o usuário logado a partir do id
     # guardado na sessão, a cada requisição.
@@ -56,8 +58,12 @@ def create_app(config_class=Config):
         return Markup(f'<input type="hidden" name="csrf_token" value="{generate_csrf()}">')
 
     # Sobe o agendador de automações (services/agendador.py) em segundo
-    # plano, junto com o app.
-    iniciar_agendador(app)
+    # plano, junto com o app. O PULSE AI usa o mesmo agendador pra reavaliar
+    # a casa a cada minuto (alertas aparecem mesmo sem a página aberta).
+    scheduler = iniciar_agendador(app)
+    if scheduler is not None:
+        from services.pulse_ai import registrar_monitor
+        registrar_monitor(scheduler, app)
 
     return app
 
