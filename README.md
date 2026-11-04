@@ -5,7 +5,16 @@ ExpoTech 2026.2 (Missão 2050, categoria INTELLIGENCE): banco de dados,
 POO, autenticação, automações, painel de energia e uma maquete 3D
 interativa ligada ao sistema real.
 
-📄 [Fluxograma](FLUXOGRAMA.md) · [Processo](PROCESS.md) · [Sprints](SPRINTS.md) · [Figma](https://www.figma.com/design/hzFawKAiLx3iq8FkzFOZxZ/ExpoTec?node-id=46-2&t=uojBmQ6G2defeyGk-0)
+## Documentação
+
+- 🔀 **[Fluxograma](FLUXOGRAMA.md)** — o caminho completo do usuário no sistema, do login
+  ao controle dos dispositivos, em diagrama.
+- 🛠️ **[Processo](PROCESS.md)** — como o projeto foi construído, as decisões que tomamos
+  e os erros que encontramos e corrigimos no caminho.
+- 🗓️ **[Sprints](SPRINTS.md)** — o mesmo processo organizado em sprints, com o que foi
+  entregue em cada etapa.
+- 🎨 **[Figma](https://www.figma.com/design/hzFawKAiLx3iq8FkzFOZxZ/ExpoTec?node-id=46-2&t=uojBmQ6G2defeyGk-0)** — o design de todas as telas (login, painel, dispositivo,
+  energia e maquete 3D) antes de virarem código.
 
 ## Tecnologias
 
