@@ -98,6 +98,80 @@ flowchart LR
 Se uma automação ligar algo ou outra pessoa mexer em outra aba, a maquete
 mostra a mudança em poucos segundos, sem recarregar a página.
 
+## 7. Fluxo completo
+
+Aqui estão todas as partes acima em um só diagrama, para ter a visão
+analítica do sistema inteiro.
+
+```mermaid
+flowchart TD
+    subgraph ACESSO["🔐 Acesso"]
+        A0(["Acessa o sistema"]) --> A1{"Logado?"}
+        A1 -- não --> A2["/login"]
+        A2 --> A3{"Credenciais<br/>válidas?"}
+        A3 -- não --> A2
+    end
+
+    A1 -- sim --> PN
+    A3 -- sim --> PN
+
+    subgraph TELAS["🖥️ Telas"]
+        PN["Painel<br/>cards por cômodo"]
+        PN --> DT["Detalhe do<br/>dispositivo"]
+        PN --> MQ["Maquete 3D"]
+        PN --> EN["Painel de<br/>energia"]
+    end
+
+    subgraph CONTROLE["⚙️ Controle"]
+        AL["POST alternar"]
+        P{"pode_controlar()?"}
+        V{"Dados<br/>válidos?"}
+        X["❌ Bloqueado /<br/>mensagem de erro"]
+        OK["ligar() / desligar() /<br/>ajustar / salvar"]
+        AL --> P
+        P -- não --> X
+        P -- sim --> OK
+        V -- não --> X
+        V -- sim --> OK
+    end
+
+    PN -- "card" --> AL
+    MQ -- "clique no objeto" --> AL
+    DT -- "intensidade, automação,<br/>permissão" --> V
+
+    subgraph AUTO["⏰ Agendador"]
+        T(["A cada minuto"]) --> B{"Automação<br/>bate com agora?"}
+        B -- não --> T
+    end
+
+    B -- sim --> OK
+
+    OK --> DB[("💾 SQLite<br/>RegistroUso")]
+
+    subgraph ENERGIA["⚡ Energia"]
+        K["kWh e custo"] --> S["Semana atual ×<br/>anterior"]
+        S --> G["Alerta + gráfico"]
+        G --> R{"Relatório?"}
+        R -- sim --> E{"SMTP?"}
+        E -- sim --> M["📧 Envia e-mail"]
+        E -- não --> PV["Prévia na tela"]
+    end
+
+    DB --> K
+    EN --> K
+
+    subgraph SYNC["🔄 Maquete sempre atualizada"]
+        S5(["A cada 5 s"]) --> API["GET /api/dispositivos"]
+        API --> CH{"Mudou algo?"}
+        CH -- não --> S5
+        CH -- sim --> UP["Atualiza a cena"]
+        UP --> S5
+    end
+
+    DB -.-> API
+    MQ -.-> S5
+```
+
 ## O que vale reparar
 
 - **Uma regra só de permissão:** `pode_controlar()` vale para os cards, a
