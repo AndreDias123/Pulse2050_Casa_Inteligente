@@ -99,9 +99,6 @@ python app.py
 | Administrador | `admin@pulse2050.app` | `admin123` |
 | Usuário Comum | `comum@pulse2050.app` | `comum123` |
 
-> ⚠️ Credenciais criadas pelo `seed.py` exclusivamente para demonstração
-> acadêmica. Não devem ser usadas em ambientes reais.
-
 ---
 
 ## ⚙️ Funcionalidades
