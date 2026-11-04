@@ -259,7 +259,19 @@ label { font-size: 12.5px; color: var(--text-dim); font-weight: 600; }
   position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%); z-index: 2;
   background: rgba(13,13,13,0.62); border: 1px solid rgba(255,255,255,0.12); backdrop-filter: blur(12px);
   border-radius: 999px; display: flex; align-items: center; gap: 12px; padding: 8px 12px 8px 8px;
-  width: min(460px, 90%);
+  width: min(560px, 94%);
+}
+.iso3d-hover {
+  position: absolute; z-index: 2; pointer-events: none; white-space: nowrap;
+  transform: translate(14px, -50%); opacity: 0; transition: opacity .12s ease;
+  background: rgba(13,13,13,0.78); border: 1px solid rgba(45,216,207,0.45); backdrop-filter: blur(8px);
+  border-radius: 999px; padding: 5px 11px; font-size: 11px; font-weight: 600; color: #ffffff;
+  font-family: 'Manrope', sans-serif;
+}
+.iso3d-hover.show { opacity: 1; }
+@media (max-width: 560px) {
+  .iso3d-controls { gap: 8px; padding: 6px 8px 6px 6px; }
+  .iso3d-free { padding: 0 9px; }
 }
 .iso3d-controls .ibtn {
   width: 32px; height: 32px; border-radius: 50%; border: none; cursor: pointer;

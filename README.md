@@ -117,6 +117,27 @@ pode mexer em outra aba, a maquete confere o estado do banco a cada 5
 segundos (`GET /api/dispositivos`) pra se manter atualizada sem precisar
 recarregar a página.
 
+A casa da maquete tem planta proporcional (garagem, sala e cozinha
+integradas, hall com escritório, banheiro e quarto), fachada de vidro,
+madeira e concreto, jardim, piscina e iluminação de LED arquitetônica. Ela
+também tem vida própria:
+
+- **Garagem inteligente:** um carro elétrico espera do lado de fora. Ao abrir
+  a porta (clicando nela ou no carro), ele entra só quando a porta termina
+  de abrir, estaciona, e a porta fecha sozinha usando a mesma rota do
+  back-end. Abrindo de novo, o carro sai. O sensor de presença acende as
+  guias de LED do piso e o carregador fica verde com o carro estacionado.
+- **Moradores:** um casal e um cachorro andam pela casa por rotas que passam
+  só pelos vãos e portas, com pausas na pia, no cooktop, na geladeira, em
+  frente à TV e na caminha do cachorro. As portas internas e a da entrada
+  abrem sozinhas quando alguém se aproxima.
+- **Reação dos dispositivos:** a persiana sobe e o vidro desliza quando a
+  janela abre, a aleta e o fluxo de ar do ar-condicionado se mexem, as
+  câmeras fazem varredura e o robô aspirador circula a ilha da cozinha e
+  volta pra base quando é desligado.
+- **Dia/Noite:** um botão no HUD alterna a iluminação natural (o padrão
+  segue o horário de quem está vendo).
+
 ## Quem pode controlar o quê
 
 Cada `Dispositivo` tem um campo `controlavel_por_comum`. O Administrador
