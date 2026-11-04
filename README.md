@@ -103,44 +103,14 @@ python app.py
 
 ## ⚙️ Funcionalidades
 
-- **Dispositivos:** 13 dispositivos residenciais (luzes, TV, ar-condicionado,
-  janela, câmeras, geladeira, robô aspirador, porta da garagem). A classe
-  `Dispositivo` possui subclasses que sobrescrevem `status()`, `ligar()` e
-  `desligar()` (herança e polimorfismo), persistidas em uma única tabela
-  (Single Table Inheritance).
-- **Permissões:** o Administrador controla todos os dispositivos; o Usuário
-  Comum controla apenas os liberados. A regra fica em
-  `Dispositivo.pode_controlar()` e é aplicada nas rotas e na interface.
-- **Automações:** o agendador verifica a cada minuto as automações ativas e
-  executa as ações no horário e nos dias da semana configurados.
-- **Energia:** consumo (kWh) e custo calculados a partir do histórico de uso,
-  com comparação semanal, projeção mensal, alerta de aumento de consumo,
-  gráfico diário por cômodo e relatório por e-mail (ou prévia, sem SMTP).
-- **Maquete 3D:** residência completa em Three.js, com todos os 13
-  dispositivos representados.
-  - Clicar em um objeto aciona a mesma rota dos cards
-    (`POST /dispositivo/<id>/alternar`), respeitando as permissões.
-  - A cena consulta `GET /api/dispositivos` a cada 5 segundos para refletir
-    mudanças feitas por automações ou por outros usuários.
-  - Inclui garagem com veículo que entra e sai conforme a porta, moradores
-    animados, portas com sensor de presença, tour de câmera e modo dia/noite.
-- **PULSE AI:** agente inteligente de monitoramento, acessível pelo painel e
-  pelo menu lateral (`/pulse-ai/`).
-  - **Monitoramento:** estado de cada dispositivo e há quanto tempo está assim,
-    obtido do histórico de uso.
-  - **Alertas** com prioridade (Informativo, Atenção, Crítico), por exemplo:
-    porta aberta além do limite, luz ligada há horas, ar-condicionado ligado
-    com a janela aberta e automação sem registro de execução. Podem ser
-    marcados como vistos ou resolvidos e ficam no histórico.
-  - **Recomendações** justificadas pelos dados: maior consumidor, aumento de
-    consumo e horários sugeridos para automações.
-  - **Assistente conversacional** que responde com os dados reais do banco.
-    Ações sobre dispositivos exigem confirmação e respeitam as permissões.
-  - **Na maquete 3D:** holograma do agente, marcadores sobre os dispositivos
-    com alerta e sinalização do cômodo com ocorrência.
-  - É um motor de regras (limites configuráveis em `config.py`), sem modelo de
-    linguagem conectado; a arquitetura do assistente permite essa integração
-    no futuro.
+| Funcionalidade | Descrição |
+|---|---|
+| **Dispositivos** | 13 aparelhos modelados com herança e polimorfismo (`Dispositivo` e subclasses), em uma única tabela (Single Table Inheritance). |
+| **Permissões** | Administrador controla tudo; Usuário Comum, só o que foi liberado. Regra única em `Dispositivo.pode_controlar()`. |
+| **Automações** | Agendador executa a cada minuto as ações programadas por horário e dia da semana. |
+| **Energia** | kWh e custo calculados pelo histórico de uso, com comparação semanal, projeção mensal, gráfico por cômodo e relatório por e-mail. |
+| **Maquete 3D** | Casa em Three.js ligada ao banco: o clique usa a mesma rota dos cards e a cena se atualiza a cada 5 s. Inclui garagem com veículo, moradores animados e modo dia/noite. |
+| **PULSE AI** | Agente de monitoramento por regras: alertas por prioridade, recomendações baseadas nos dados, assistente que responde com informações reais (ações só com confirmação) e sinalização na maquete. |
 
 ---
 
