@@ -29,6 +29,9 @@
       {{ base_icons.icone('pulse_ai', 21) }}
       <span class="ai-nav-dot {{ ai_badge.status }}" id="ai-nav-dot"></span>
     </a>
+    <a class="navbtn {{ 'active' if request.endpoint == 'docs.swagger' else '' }}" href="{{ url_for('docs.swagger') }}" title="API (Swagger)">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M8 5 C5 5 6 10 3.5 12 C6 14 5 19 8 19"/><path d="M16 5 C19 5 18 10 20.5 12 C18 14 19 19 16 19"/><path d="M10 12 h.01 M12 12 h.01 M14 12 h.01"/></svg>
+    </a>
     <div style="flex:1;"></div>
     <a class="navbtn" href="{{ url_for('auth.logout') }}" title="Sair">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M15 4 H19 V20 H15 M10 8 L4 12 L10 16 M4 12 H15"/></svg>

@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>API PULSE2050 · Swagger</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5.17.14/swagger-ui.css">
+  <style>
+    :root { --bg: #0d0d0d; --text: #fff; --dim: #c3c2b7; --accent: oklch(0.74 0.13 199); }
+    body { margin: 0; background: #f4f5f6; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+    .topo { background: var(--bg); color: var(--text); padding: 14px 24px; display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+    .topo .marca { display: flex; align-items: center; gap: 10px; font-weight: 600; letter-spacing: .02em; }
+    .topo .marca small { color: var(--dim); font-weight: 400; }
+    .topo .espaco { flex: 1; }
+    .topo .usuario { color: var(--dim); font-size: 13px; }
+    .topo a { color: var(--accent); text-decoration: none; font-size: 14px; border: 1px solid rgba(255,255,255,.18); padding: 6px 12px; border-radius: 8px; }
+    .topo a:hover { background: rgba(255,255,255,.06); }
+    .swagger-ui .topbar { display: none; }
+    .swagger-ui .info { margin: 28px 0 18px; }
+    #swagger { max-width: 1200px; margin: 0 auto; padding: 0 16px 40px; }
+  </style>
+</head>
+<body>
+  <div class="topo">
+    <div class="marca">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent)">
+        <path d="M12 2 L21 7 V17 L12 22 L3 17 V7 Z"/><path d="M8.5 12 L11 14.5 L15.5 9.5"/>
+      </svg>
+      PULSE2050 <small>· Documentação da API</small>
+    </div>
+    <div class="espaco"></div>
+    <span class="usuario">Sessão: {{ usuario_logado.nome }} ({{ 'Administrador' if usuario_logado.is_admin else 'Usuário Comum' }})</span>
+    <a href="{{ url_for('main.dashboard') }}">← Voltar ao painel</a>
+  </div>
+
+  <div id="swagger"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5.17.14/swagger-ui-bundle.js"></script>
+  <script>
+    // O "Try it out" roda no mesmo navegador logado: o cookie de sessão vai
+    // sozinho e o token CSRF abaixo é anexado em toda requisição (POST exige).
+    var CSRF = "{{ csrf_token() }}";
+    window.ui = SwaggerUIBundle({
+      url: "{{ url_for('static', filename='openapi.yaml') }}",
+      dom_id: "#swagger",
+      deepLinking: true,
+      docExpansion: "list",
+      defaultModelsExpandDepth: 0,
+      displayRequestDuration: true,
+      tryItOutEnabled: false,
+      requestInterceptor: function (req) {
+        req.headers["X-CSRFToken"] = CSRF;
+        req.credentials = "same-origin";
+        return req;
+      }
+    });
+  </script>
+</body>
+</html>

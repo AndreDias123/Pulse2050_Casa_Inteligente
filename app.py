@@ -32,11 +32,13 @@ def create_app(config_class=Config):
     from main import bp as main_bp
     from energia import bp as energia_bp
     from pulse_ai import bp as pulse_ai_bp
+    from docs import bp as docs_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(main_bp)
     app.register_blueprint(energia_bp)
     app.register_blueprint(pulse_ai_bp)
+    app.register_blueprint(docs_bp)  # Swagger: /api/docs
 
     # Flask-Login chama isso pra recarregar o usuário logado a partir do id
     # guardado na sessão, a cada requisição.

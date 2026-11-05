@@ -1,0 +1,551 @@
+openapi: 3.0.3
+info:
+  title: PULSE2050 — API da Casa Inteligente
+  version: "1.0"
+  description: |
+    Rotas do **PULSE2050**, sistema de gerenciamento de uma residência inteligente
+    (ExpoTech 2026.2 · Missão 2050 · categoria INTELLIGENCE).
+
+    **Como a API funciona**
+    - **Autenticação por sessão** (Flask-Login): faça login em `/login` e o navegador
+      guarda o cookie `session`. Sem login, toda rota redireciona (302) para `/login`.
+    - **CSRF** (Flask-WTF): todo `POST` precisa do token, enviado no header `X-CSRFToken`
+      (APIs JSON) ou no campo `csrf_token` (formulários). Nesta página ele já é anexado.
+    - **Permissões**: o Administrador controla tudo; o Usuário Comum só o que foi liberado.
+      A regra é única: `Dispositivo.pode_controlar()`, usada pelos cards, pela maquete 3D,
+      pelas automações e pelo PULSE AI.
+    - **Dois tipos de rota**: as **APIs JSON** (maquete e PULSE AI) respondem dados; as
+      **rotas de tela** respondem HTML ou redirecionam (302) após salvar, como um formulário.
+
+    Os exemplos de resposta foram capturados do sistema rodando com o banco do `seed.py`.
+servers:
+  - url: /
+    description: Servidor local (mesmo endereço desta página)
+tags:
+  - name: Autenticação
+    description: Login e logout com dois perfis (Administrador e Usuário Comum).
+  - name: Dispositivos
+    description: Controle dos 13 dispositivos — mesma rota para os cards e para a maquete 3D.
+  - name: Maquete 3D
+    description: API que mantém a maquete sincronizada com o banco (consulta a cada 5 s).
+  - name: Automações
+    description: Ações programadas por horário, executadas pelo agendador a cada minuto.
+  - name: Energia
+    description: Consumo (kWh) e custo calculados a partir do histórico real (`RegistroUso`).
+  - name: PULSE AI
+    description: Agente de monitoramento por regras — alertas, recomendações e assistente.
+
+security:
+  - sessao: []
+
+paths:
+  # ───────────────────────────── Autenticação ─────────────────────────────
+  /login:
+    get:
+      tags: [Autenticação]
+      summary: Tela de login
+      security: []
+      responses:
+        "200": { description: Página HTML de login. }
+        "302": { description: Usuário já logado — redireciona para o painel. }
+    post:
+      tags: [Autenticação]
+      summary: Entrar no sistema
+      description: Confere e-mail e senha (hash) e cria a sessão. Contas de demonstração no README.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required: [email, senha]
+              properties:
+                email: { type: string, example: admin@pulse2050.app }
+                senha: { type: string, format: password, example: admin123 }
+                lembrar: { type: string, description: "Qualquer valor mantém a sessão (\"lembrar de mim\").", example: "on" }
+      responses:
+        "302": { description: Login válido — redireciona para o painel com o cookie de sessão. }
+        "200": { description: Credenciais inválidas — volta para a tela com mensagem de erro. }
+  /logout:
+    get:
+      tags: [Autenticação]
+      summary: Sair do sistema
+      responses:
+        "302": { description: Encerra a sessão e redireciona para `/login`. }
+
+  # ───────────────────────────── Dispositivos ─────────────────────────────
+  /:
+    get:
+      tags: [Dispositivos]
+      summary: Painel principal
+      description: Cards por cômodo, contadores, próxima automação e a maquete 3D.
+      responses:
+        "200": { description: Página HTML do painel. }
+        "302": { $ref: "#/components/responses/SemLogin" }
+  /dispositivo/{dispositivo_id}:
+    get:
+      tags: [Dispositivos]
+      summary: Detalhe de um dispositivo
+      description: Histórico de uso de hoje, intensidade (luzes), permissões e automações do dispositivo.
+      parameters: [{ $ref: "#/components/parameters/DispositivoId" }]
+      responses:
+        "200": { description: Página HTML de detalhe. }
+        "404": { description: Dispositivo não existe. }
+  /dispositivo/{dispositivo_id}/alternar:
+    post:
+      tags: [Dispositivos]
+      summary: Ligar / desligar
+      description: |
+        Rota única usada pelos **cards**, pela **tela de detalhe** e pelos **cliques na maquete 3D**.
+        Verifica `pode_controlar()`, chama `alternar()` (polimorfismo) e grava um `RegistroUso`
+        com quem e quando.
+      parameters: [{ $ref: "#/components/parameters/DispositivoId" }]
+      responses:
+        "302": { description: "Estado alterado (ou mensagem \"sem permissão\") — volta para a página de origem." }
+        "404": { description: Dispositivo não existe. }
+  /dispositivo/{dispositivo_id}/intensidade:
+    post:
+      tags: [Dispositivos]
+      summary: Ajustar intensidade da luz
+      description: Só para luzes. Validação no servidor — número inteiro de 1 a 100.
+      parameters: [{ $ref: "#/components/parameters/DispositivoId" }]
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required: [intensidade]
+              properties:
+                intensidade: { type: integer, minimum: 1, maximum: 100, example: 60 }
+      responses:
+        "302": { description: Salvo (ou mensagem de erro de validação) — volta para o detalhe. }
+        "400": { description: O dispositivo não é uma luz. }
+        "404": { description: Dispositivo não existe. }
+  /dispositivo/{dispositivo_id}/permissao:
+    post:
+      tags: [Dispositivos]
+      summary: Liberar / bloquear para o Usuário Comum
+      description: "**Só Administrador.** Alterna o campo `controlavel_por_comum` do dispositivo."
+      parameters: [{ $ref: "#/components/parameters/DispositivoId" }]
+      responses:
+        "302": { description: Permissão alterada — volta para o detalhe. }
+        "403": { description: Usuário logado não é Administrador. }
+        "404": { description: Dispositivo não existe. }
+
+  # ───────────────────────────── Maquete 3D ─────────────────────────────
+  /api/dispositivos:
+    get:
+      tags: [Maquete 3D]
+      summary: Estado de todos os dispositivos
+      description: |
+        Consultada pela maquete (`casa3d.js`) **a cada 5 segundos**. Se algo mudou — por
+        automação, por outra aba ou por outro usuário — a cena 3D se atualiza sozinha.
+        `pode_controlar` já vem calculado para o usuário logado.
+      responses:
+        "200":
+          description: Lista com os 13 dispositivos.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/DispositivoResumo" }
+              example:
+                - { id: 1, nome: Luz do Quarto, ativo: false, pode_controlar: true }
+                - { id: 2, nome: Janela do Quarto, ativo: true, pode_controlar: true }
+                - { id: 3, nome: Ar-condicionado, ativo: false, pode_controlar: true }
+                - { id: 4, nome: Luz da Sala, ativo: true, pode_controlar: true }
+                - { id: 10, nome: Porta da Garagem, ativo: false, pode_controlar: true }
+        "302": { $ref: "#/components/responses/SemLogin" }
+
+  # ───────────────────────────── Automações ─────────────────────────────
+  /dispositivo/{dispositivo_id}/automacao:
+    post:
+      tags: [Automações]
+      summary: Criar automação
+      description: |
+        Validação no servidor: nome obrigatório, horário `HH:MM` válido (00–23 : 00–59) e ação
+        `ligar` ou `desligar`. O agendador (APScheduler) confere as automações ativas a cada minuto.
+      parameters: [{ $ref: "#/components/parameters/DispositivoId" }]
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required: [nome, horario, acao]
+              properties:
+                nome: { type: string, example: Apagar à noite }
+                horario: { type: string, pattern: "^\\d{2}:\\d{2}$", example: "23:00" }
+                acao: { type: string, enum: [ligar, desligar], example: desligar }
+      responses:
+        "302": { description: Automação criada (ou mensagem de erro de validação) — volta para o detalhe. }
+        "404": { description: Dispositivo não existe. }
+  /dispositivo/{dispositivo_id}/automacao/{automacao_id}/alternar:
+    post:
+      tags: [Automações]
+      summary: Ativar / desativar automação
+      description: Pausa a automação sem apagar. Enquanto inativa, o agendador a ignora.
+      parameters:
+        - { $ref: "#/components/parameters/DispositivoId" }
+        - { name: automacao_id, in: path, required: true, schema: { type: integer }, example: 2 }
+      responses:
+        "302": { description: Automação alternada (ou mensagem "sem permissão") — volta para o detalhe. }
+        "404": { description: Dispositivo ou automação não existe. }
+
+  # ───────────────────────────── Energia ─────────────────────────────
+  /energia/:
+    get:
+      tags: [Energia]
+      summary: Painel de energia
+      description: |
+        kWh e custo da semana, comparação com a semana anterior, projeção mensal, alerta do
+        aparelho que mais cresceu e gráfico diário por cômodo. Tudo é calculado na hora a
+        partir do `RegistroUso` (tempo ligado × potência).
+      responses:
+        "200": { description: Página HTML do painel de energia. }
+  /energia/relatorio:
+    get:
+      tags: [Energia]
+      summary: Confirmar geração do relatório
+      responses:
+        "200": { description: Tela de confirmação (o relatório só é gerado no POST). }
+    post:
+      tags: [Energia]
+      summary: Gerar relatório semanal
+      description: Gera o relatório dos últimos 7 dias. Com SMTP configurado envia por e-mail; sem SMTP mostra a prévia.
+      responses:
+        "200": { description: Página HTML com o resultado e a prévia do e-mail. }
+
+  # ───────────────────────────── PULSE AI ─────────────────────────────
+  /pulse-ai/:
+    get:
+      tags: [PULSE AI]
+      summary: Página do agente
+      responses:
+        "200": { description: "Página HTML do PULSE AI (alertas, saúde, recomendações e assistente)." }
+  /pulse-ai/api/estado:
+    get:
+      tags: [PULSE AI]
+      summary: Estado completo da casa segundo o agente
+      description: |
+        Reavalia as regras (no máximo a cada 5 s) e devolve tudo que a página do agente mostra:
+        alertas ativos e histórico, indicadores, saúde, garagem, resumo do dia, automações e
+        linha do tempo. O campo `versao` (hash) muda só quando algo muda — a tela usa isso
+        para não redesenhar à toa. A resposta real é grande; o exemplo abaixo está resumido.
+      responses:
+        "200":
+          description: Estado do agente.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/EstadoAgente" }
+              example:
+                status: info
+                versao: fccc650eea2e757349d2e307e118bb18
+                atualizado_hm: "19:50:39"
+                indicadores:
+                  total: 13
+                  ligados: 7
+                  desligados: 6
+                  com_alerta: 2
+                  automacoes: 6
+                  luzes_ligadas: [Sala, Cozinha]
+                  janelas_abertas: 1
+                  janelas_fechadas: 0
+                  portas_abertas: 0
+                  portas_fechadas: 1
+                saude: { total: 13, operacionais: 13, percentual: 100, atencao: [], criticos: [] }
+                alertas_ativos:
+                  - id: 14
+                    tipo: janela_aberta
+                    prioridade: info
+                    titulo: Janela aberta
+                    descricao: A Janela do Quarto (Quarto) está aberta desde 19:24.
+                    sugestao: Feche a janela ao sair do cômodo ou se for chover.
+                    status: ativo
+                    comodo: Quarto
+                    dispositivo: { id: 2, nome: Janela do Quarto }
+                    detectado_hm: "19:24"
+                    pode_gerenciar: true
+                alertas_historico: []
+                garagem: { aberta: false, porta: Porta da Garagem, luz: Desligada, desde_hm: "19:39", minutos: 11 }
+                resumo:
+                  data: 04/11/2026
+                  kwh: 10.4
+                  custo: 9.57
+                  eventos: 50
+                  por_pessoas: 45
+                  por_automacao: 5
+                  alertas: { info: 11, atencao: 5, critico: 1 }
+                dispositivos: []
+                automacoes: []
+                linha_do_tempo:
+                  - { hm: "19:39", autor: PULSE AI, tipo: resolvido, texto: "Alerta resolvido: Porta aberta (Porta da Garagem)" }
+                  - { hm: "19:39", autor: Automação, tipo: estado, texto: Porta da Garagem aberta }
+  /pulse-ai/api/recomendacoes:
+    get:
+      tags: [PULSE AI]
+      summary: Recomendações baseadas nos dados
+      description: |
+        Calculadas do histórico real: maior consumidor da semana, aumento de consumo,
+        luzes esquecidas, padrões de horário que viram sugestão de automação e
+        automações que ligam algo sem nada que desligue. Toda recomendação traz a justificativa.
+      responses:
+        "200":
+          description: Lista de recomendações.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Recomendacao" }
+              example:
+                - categoria: Energia
+                  titulo: Ar-condicionado é o maior consumidor da semana
+                  justificativa: 72.9 kWh de 105.5 kWh nos últimos 7 dias (69% do total, R$ 67.03).
+                  sugestao: Reduzir 1 hora por dia de uso desse aparelho é a economia de maior efeito na conta.
+                - categoria: Automação
+                  titulo: "Horário sugerido para automatizar: Luz da Sala"
+                  justificativa: Em 13 de 16 usos nos últimos 14 dias ela foi ligada perto das 15:00 e desligada perto das 20:30 (±30 min).
+                  sugestao: Criar as automações "ligar às 15:00" e "desligar às 20:30" reproduziria esse padrão.
+  /pulse-ai/api/badge:
+    get:
+      tags: [PULSE AI]
+      summary: Indicador do menu lateral
+      description: Consultado a cada 30 s para colorir o ponto do PULSE AI no menu (`ok`, `info`, `atencao`, `critico`).
+      responses:
+        "200":
+          description: Resumo de alertas.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { $ref: "#/components/schemas/Prioridade" }
+                  alertas: { type: integer, description: Alertas ativos. }
+                  importantes: { type: integer, description: Alertas de Atenção ou Crítico. }
+                  monitorados: { type: integer, description: Dispositivos monitorados. }
+              example: { status: info, alertas: 2, importantes: 0, monitorados: 13 }
+  /pulse-ai/api/maquete:
+    get:
+      tags: [PULSE AI]
+      summary: Sinalização do agente na maquete 3D
+      description: Alertas por cômodo, portas/janelas abertas e cômodos com luz acesa — a maquete desenha marcadores e destaques a partir disso.
+      responses:
+        "200":
+          description: Dados para a maquete.
+          content:
+            application/json:
+              example:
+                status: info
+                alertas:
+                  - { comodo: Quarto, dispositivo: Janela do Quarto, prioridade: info, titulo: Janela aberta }
+                  - { comodo: Área Externa, dispositivo: Luz Externa, prioridade: info, titulo: Automação sem registro de execução }
+                abertos: [{ dispositivo: Janela do Quarto, tipo: janelas }]
+                luzes_por_comodo: [Cozinha, Sala]
+                comodos: {}
+  /pulse-ai/api/alertas/{alerta_id}/{acao}:
+    post:
+      tags: [PULSE AI]
+      summary: Marcar alerta como visto ou resolvido
+      description: |
+        `visto` só tira o destaque; `resolver` fecha o alerta e registra quem resolveu.
+        O Usuário Comum só gerencia alertas de dispositivos que ele pode controlar.
+        Se a situação acabar sozinha, o agente resolve o alerta automaticamente.
+      parameters:
+        - { name: alerta_id, in: path, required: true, schema: { type: integer }, example: 14 }
+        - { name: acao, in: path, required: true, schema: { type: string, enum: [visto, resolver] }, example: visto }
+      responses:
+        "200":
+          description: Alerta atualizado.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Alerta" }
+        "400": { $ref: "#/components/responses/SemCsrf" }
+        "403":
+          description: Perfil sem permissão sobre o dispositivo do alerta.
+          content:
+            application/json:
+              example: { erro: Seu perfil não pode gerenciar alertas deste dispositivo. }
+        "404": { description: Alerta não existe ou ação inválida. }
+  /pulse-ai/api/chat:
+    post:
+      tags: [PULSE AI]
+      summary: Perguntar ao assistente
+      description: |
+        O assistente entende a pergunta por regras (sem LLM externo) e responde **só com dados
+        do banco**. Exemplos: *"quanto estou gastando de energia?"*, *"tem alguma janela aberta?"*,
+        *"o que aconteceu hoje?"*, *"desligue a luz da cozinha"*.
+
+        Quando o pedido é uma ação, **nada é executado aqui**: a resposta traz uma proposta em
+        `acao`, que só acontece depois da confirmação em `/pulse-ai/api/executar`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [mensagem]
+              properties:
+                mensagem: { type: string, maxLength: 500 }
+            examples:
+              pergunta:
+                summary: Pergunta sobre energia
+                value: { mensagem: "quanto estou gastando de energia?" }
+              acao:
+                summary: Pedido de ação (gera proposta)
+                value: { mensagem: desligue a luz da cozinha }
+      responses:
+        "200":
+          description: Resposta do assistente.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RespostaChat" }
+              examples:
+                pergunta:
+                  summary: Resposta com dados
+                  value:
+                    motor: regras
+                    texto: "O cômodo que mais consumiu nos últimos 7 dias foi Quarto: 73.1 kWh (69% do total)."
+                    itens: ["Quarto: 73.12 kWh", "Cozinha: 25.12 kWh", "Sala: 4.45 kWh", "Área Externa: 2.59 kWh", "Garagem: 0.23 kWh"]
+                    acao: null
+                acao:
+                  summary: Proposta aguardando confirmação
+                  value:
+                    motor: regras
+                    texto: "Posso desligar: Luz da Cozinha (Cozinha), que agora está ligada · 100%. Confirma?"
+                    itens: []
+                    acao: { acao: desligar, dispositivo_id: 7, nome: Luz da Cozinha, rotulo: Desligar, pedido: desligue a luz da cozinha }
+        "400": { $ref: "#/components/responses/SemCsrf" }
+  /pulse-ai/api/executar:
+    post:
+      tags: [PULSE AI]
+      summary: Executar ação confirmada
+      description: |
+        Executa a proposta do assistente depois que o usuário confirma. O servidor **revalida
+        tudo**: dispositivo, ação e `pode_controlar()`. Usa o mesmo `ligar()`/`desligar()` do
+        painel (gera `RegistroUso`) e grava a ação em `AcaoAgente`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [dispositivo_id, acao]
+              properties:
+                dispositivo_id: { type: integer, example: 7 }
+                acao: { type: string, enum: [ligar, desligar], example: desligar }
+                pedido: { type: string, maxLength: 300, description: Texto original do pedido (fica no log)., example: desligue a luz da cozinha }
+      responses:
+        "200":
+          description: Ação executada (ou o dispositivo já estava no estado pedido).
+          content:
+            application/json:
+              example:
+                motor: regras
+                texto: "Pronto: Luz da Cozinha agora está desligada."
+                itens: []
+                acao: null
+                dispositivo: { id: 7, ativo: false }
+        "400":
+          description: Dispositivo ou ação inválidos (ou token CSRF ausente).
+          content:
+            application/json:
+              example: { erro: Pedido inválido. }
+        "403":
+          description: Perfil sem permissão para controlar o dispositivo.
+          content:
+            application/json:
+              example: { erro: Seu perfil não tem permissão para controlar Luz da Cozinha. }
+
+components:
+  securitySchemes:
+    sessao:
+      type: apiKey
+      in: cookie
+      name: session
+      description: Cookie criado pelo Flask-Login no `/login`. Nesta página ele já está ativo.
+  parameters:
+    DispositivoId:
+      name: dispositivo_id
+      in: path
+      required: true
+      description: "1 Luz do Quarto · 2 Janela do Quarto · 3 Ar-condicionado · 4 Luz da Sala · 5 TV · 6 Câmera da Sala · 7 Luz da Cozinha · 8 Geladeira · 9 Robô Aspirador · 10 Porta da Garagem · 11 Luz da Garagem · 12 Câmera Externa · 13 Luz Externa"
+      schema: { type: integer, minimum: 1 }
+      example: 4
+  responses:
+    SemLogin:
+      description: Sem sessão — redireciona para `/login`.
+    SemCsrf:
+      description: Token CSRF ausente ou inválido (Flask-WTF).
+  schemas:
+    Prioridade:
+      type: string
+      enum: [ok, info, atencao, critico]
+    DispositivoResumo:
+      type: object
+      properties:
+        id: { type: integer }
+        nome: { type: string }
+        ativo: { type: boolean, description: Ligado / aberto / gravando. }
+        pode_controlar: { type: boolean, description: Resultado de `pode_controlar()` para o usuário logado. }
+    Alerta:
+      type: object
+      properties:
+        id: { type: integer }
+        tipo:
+          type: string
+          enum: [luz_tempo, porta_aberta, janela_aberta, ac_janela, ac_tempo, camera_off, bateria, auto_nao_exec]
+        prioridade: { $ref: "#/components/schemas/Prioridade" }
+        titulo: { type: string }
+        descricao: { type: string }
+        sugestao: { type: string }
+        status: { type: string, enum: [ativo, visto, resolvido] }
+        comodo: { type: string }
+        dispositivo:
+          type: object
+          properties: { id: { type: integer }, nome: { type: string } }
+        detectado_em: { type: string, format: date-time }
+        detectado_hm: { type: string, example: "19:24" }
+        resolvido_hm: { type: string, nullable: true }
+        resolvido_por: { type: string, nullable: true, example: Automático (condição normalizada) }
+        pode_gerenciar: { type: boolean }
+    Recomendacao:
+      type: object
+      properties:
+        categoria: { type: string, enum: [Energia, Padrão de uso, Iluminação, Automação] }
+        titulo: { type: string }
+        justificativa: { type: string, description: Os números que sustentam a recomendação. }
+        sugestao: { type: string }
+    RespostaChat:
+      type: object
+      properties:
+        motor: { type: string, example: regras }
+        texto: { type: string }
+        itens: { type: array, items: { type: string } }
+        acao:
+          type: object
+          nullable: true
+          description: Proposta de ação — só é executada após confirmação.
+          properties:
+            acao: { type: string, enum: [ligar, desligar] }
+            dispositivo_id: { type: integer }
+            nome: { type: string }
+            rotulo: { type: string }
+            pedido: { type: string }
+    EstadoAgente:
+      type: object
+      properties:
+        status: { $ref: "#/components/schemas/Prioridade" }
+        versao: { type: string, description: Hash do estado; muda só quando algo muda. }
+        atualizado_hm: { type: string }
+        indicadores: { type: object }
+        saude: { type: object }
+        alertas_ativos: { type: array, items: { $ref: "#/components/schemas/Alerta" } }
+        alertas_historico: { type: array, items: { $ref: "#/components/schemas/Alerta" } }
+        garagem: { type: object }
+        resumo: { type: object }
+        dispositivos: { type: array, items: { type: object } }
+        automacoes: { type: array, items: { type: object } }
+        categorias: { type: array, items: { type: object } }
+        linha_do_tempo: { type: array, items: { type: object } }

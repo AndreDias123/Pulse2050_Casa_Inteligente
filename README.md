@@ -23,6 +23,7 @@ sobre o funcionamento da casa.
 | [Processo](PROCESS.md) | Decisões técnicas, problemas encontrados e como foram resolvidos. |
 | [Sprints](SPRINTS.md) | Evolução do projeto por sprint e acompanhamento no Kanban. |
 | [Figma](https://www.figma.com/design/hzFawKAiLx3iq8FkzFOZxZ/ExpoTec?node-id=46-2&t=uojBmQ6G2defeyGk-0) | Protótipo das telas: login, painel, dispositivo, energia e maquete 3D. |
+| [API (Swagger)](static/openapi.yaml) | Todas as rotas documentadas. Com o sistema rodando, acesse `/api/docs` para testar. |
 
 ---
 
@@ -126,6 +127,7 @@ python app.py
 | `main.py` | Painel, controle dos dispositivos e API da maquete 3D |
 | `energia.py` | Painel de energia e relatórios |
 | `pulse_ai.py` | Rotas do PULSE AI (página e API do agente) |
+| `docs.py` · `static/openapi.yaml` | Documentação Swagger da API (`/api/docs`) |
 | `services/` | Cálculo de energia, relatórios, agendador de automações e o PULSE AI (`pulse_ai.py`, `pulse_ai_chat.py`) |
 | `templates/` | Páginas HTML (Jinja2) |
 | `static/css/` · `static/js/` | Estilos, cena da maquete 3D (`casa3d.js`) e página do agente (`pulse_ai.js`) |
